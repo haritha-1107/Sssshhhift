@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Base light theme -->
+    <style name="Theme.Sssshhhift" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary branding colors -->
+        <item name="colorPrimary">@color/primary_color</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/fab_background</item>
+        <item name="colorSurface">@color/background_primary</item>
+
+        <!-- Other overrides -->
+        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimary</item>
+        <item name="android:navigationBarColor">@color/background_primary</item>
+        <item name="android:windowBackground">@color/background_primary</item>
+    </style>
+
+
+</resources>

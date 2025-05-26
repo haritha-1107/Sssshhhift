@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Base dark theme -->
+    <style name="Theme.Sssshhhift" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary_color</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/fab_background</item>
+        <item name="colorSurface">#121212</item>
+
+        <!-- Other overrides -->
+        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimary</item>
+        <item name="android:navigationBarColor">#121212</item>
+        <item name="android:windowBackground">#121212</item>
+    </style>
+
+</resources>

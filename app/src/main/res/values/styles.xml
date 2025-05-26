@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Bottom Navigation Active Indicator -->
+    <style name="BottomNavActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@color/primary_color</item>
+    </style>
+
+    <!-- Floating Action Button Shape -->
+    <style name="FabShapeAppearance">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <!-- Toolbar Popup Menu Styling -->
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="android:textColor">@color/white</item>
+        <item name="colorControlHighlight">@color/primary_color</item>
+    </style>
+
+    <!-- AppBar Overlay Styling -->
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.Material3.Dark.ActionBar" />
+
+</resources>
