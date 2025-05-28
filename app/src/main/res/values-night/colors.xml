@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Brand Colors -->
+    <color name="primary">#818CF8</color>              <!-- Light Indigo for dark mode -->
+    <color name="primary_variant">#6366F1</color>      <!-- Medium Indigo -->
+    <color name="primary_color">#818CF8</color>        <!-- Keep for backward compatibility -->
+
+    <!-- Secondary Colors -->
+    <color name="secondary">#22D3EE</color>            <!-- Light Cyan -->
+    <color name="secondary_variant">#06B6D4</color>    <!-- Medium Cyan -->
+
+    <!-- Background Colors -->
+    <color name="background_primary">#0F172A</color>   <!-- Very Dark Blue-Gray -->
+    <color name="background_light">#1E293B</color>     <!-- Dark Blue-Gray -->
+    <color name="surface">#1E293B</color>              <!-- Card/Surface Dark -->
+    <color name="surface_variant">#334155</color>      <!-- Medium Dark Surface -->
+
+    <!-- Text Colors -->
+    <color name="on_primary">#1E1B4B</color>           <!-- Dark text on light primary -->
+    <color name="on_secondary">#164E63</color>         <!-- Dark text on light secondary -->
+    <color name="on_background">#F1F5F9</color>        <!-- Light text on dark background -->
+    <color name="on_surface">#E2E8F0</color>           <!-- Light text on dark surface -->
+    <color name="text_primary">#F8FAFC</color>         <!-- Primary light text -->
+    <color name="text_secondary">#CBD5E1</color>       <!-- Secondary light text -->
+    <color name="text_disabled">#64748B</color>        <!-- Disabled text -->
+
+    <!-- FAB Colors -->
+    <color name="fab_background">#818CF8</color>       <!-- Light indigo for visibility -->
+    <color name="fab_ripple">#A5B4FC</color>           <!-- Even lighter indigo ripple -->
+
+    <!-- Component Colors -->
+    <color name="track_color">#475569</color>          <!-- Medium gray for tracks -->
+    <color name="chip_background_inactive">#374151</color> <!-- Dark chip background -->
+    <color name="chip_background_active">#818CF8</color>   <!-- Active chip background -->
+
+    <!-- Utility Colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="overlay_background">#80000000</color> <!-- Semi-transparent black -->
+    <color name="ripple_light">#1A818CF8</color>       <!-- Light ripple effect -->
+
+    <!-- Status Colors -->
+    <color name="success">#34D399</color>              <!-- Light Green -->
+    <color name="warning">#FCD34D</color>              <!-- Light Amber -->
+    <color name="error">#F87171</color>                <!-- Light Red -->
+    <color name="info">#22D3EE</color>                 <!-- Light Cyan -->
+
+    <!-- Navigation Colors -->
+    <color name="nav_background">#1E293B</color>       <!-- Dark navigation background -->
+    <color name="nav_selected">#818CF8</color>         <!-- Selected nav item -->
+    <color name="nav_unselected">#94A3B8</color>       <!-- Unselected nav item -->
+</resources>
