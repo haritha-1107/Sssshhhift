@@ -3,9 +3,31 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/white"
     android:fitsSystemWindows="true">
 
-    <!-- Main Logo Container -->
+    <!-- Subtle Background Elements for Visual Interest -->
+    <ImageView
+        android:id="@+id/background_circle1"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_centerInParent="true"
+        android:layout_marginTop="-120dp"
+        android:alpha="0.05"
+        android:src="@drawable/circle_shape"
+        android:tint="@color/primary_color" />
+
+    <ImageView
+        android:id="@+id/background_circle2"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_centerInParent="true"
+        android:layout_marginStart="100dp"
+        android:layout_marginTop="80dp"
+        android:alpha="0.03"
+        android:src="@drawable/circle_shape"
+        android:tint="@color/accent_color" />
+
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -13,52 +35,186 @@
         android:orientation="vertical"
         android:gravity="center">
 
-        <!-- App Logo/Icon -->
-        <ImageView
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:layout_marginBottom="24dp"
-            android:contentDescription="Sssshhhiftt Logo" />
+        <!-- App Logo/Icon with Shadow Effect -->
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp">
 
-        <!-- App Name -->
+            <!-- Logo Shadow -->
+            <ImageView
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_centerInParent="true"
+                android:layout_marginTop="4dp"
+                android:layout_marginStart="4dp"
+                android:alpha="0.1"
+                android:src="@drawable/ic_app_logo"
+                android:tint="@color/black" />
+
+            <!-- Main Logo -->
+            <ImageView
+                android:id="@+id/splash_logo"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_centerInParent="true"
+                android:contentDescription="Sssshhhiftt Logo"
+                android:src="@drawable/ic_app_logo"
+                android:tint="@color/primary_color" />
+
+            <!-- Animated Ring Around Logo -->
+            <ImageView
+                android:id="@+id/logo_ring"
+                android:layout_width="140dp"
+                android:layout_height="140dp"
+                android:layout_centerInParent="true"
+                android:alpha="0"
+                android:src="@drawable/ring_shape"
+                android:tint="@color/accent_color" />
+
+        </RelativeLayout>
+
+        <!-- App Name with Enhanced Styling -->
         <TextView
+            android:id="@+id/splash_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Sssshhhiftt"
-            android:textSize="32sp"
+            android:textSize="34sp"
             android:textStyle="bold"
-            android:textColor="@color/white"
-            android:letterSpacing="0.1"
-            android:layout_marginBottom="8dp" />
+            android:textColor="@color/primary_text"
+            android:letterSpacing="0.05"
+            android:layout_marginBottom="12dp"
+            android:fontFamily="sans-serif-medium"
+            android:elevation="2dp" />
 
-        <!-- Tagline -->
+        <!-- Enhanced Tagline -->
         <TextView
+            android:id="@+id/splash_tagline"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Smart Profile Manager"
-            android:textSize="16sp"
-            android:alpha="0.8" />
+            android:textSize="18sp"
+            android:textColor="@color/secondary_text"
+            android:fontFamily="sans-serif-light"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Feature Highlight -->
+        <LinearLayout
+            android:id="@+id/feature_highlight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:alpha="0"
+            android:layout_marginTop="16dp">
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_timer"
+                android:tint="@color/accent_color"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Timer Based"
+                android:textSize="12sp"
+                android:textColor="@color/secondary_text"
+                android:layout_marginEnd="16dp" />
+
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_location1"
+                android:tint="@color/accent_color"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Location Based"
+                android:textSize="12sp"
+                android:textColor="@color/secondary_text" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
-    <!-- Loading Animation (Optional) -->
+    <!-- Styled Progress Bar -->
     <ProgressBar
+        android:id="@+id/splash_progress"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginBottom="64dp"
-        android:indeterminateTint="@color/white"
+        android:layout_marginBottom="80dp"
+        android:indeterminateTint="@color/primary_color"
         style="@android:style/Widget.Material.ProgressBar" />
 
-    <!-- Version Info -->
+    <!-- Loading Text -->
     <TextView
+        android:id="@+id/loading_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="50dp"
+        android:text="Loading..."
+        android:textSize="14sp"
+        android:textColor="@color/secondary_text"
+        android:alpha="0"
+        android:fontFamily="sans-serif-light" />
+
+    <!-- Version Info with Better Styling -->
+    <TextView
+        android:id="@+id/version_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="24dp"
         android:text="v1.0.0"
-        android:textSize="12sp"/>
+        android:textSize="12sp"
+        android:textColor="@color/tertiary_text"
+        android:fontFamily="monospace"
+        android:alpha="0" />
+
+    <!-- Animated Dots for Loading Effect -->
+    <LinearLayout
+        android:id="@+id/loading_dots"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/loading_text"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="8dp"
+        android:orientation="horizontal"
+        android:alpha="0">
+
+        <View
+            android:id="@+id/dot1"
+            android:layout_width="6dp"
+            android:layout_height="6dp"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/dot_shape"
+            android:backgroundTint="@color/primary_color" />
+
+        <View
+            android:id="@+id/dot2"
+            android:layout_width="6dp"
+            android:layout_height="6dp"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/dot_shape"
+            android:backgroundTint="@color/primary_color" />
+
+        <View
+            android:id="@+id/dot3"
+            android:layout_width="6dp"
+            android:layout_height="6dp"
+            android:background="@drawable/dot_shape"
+            android:backgroundTint="@color/primary_color" />
+
+    </LinearLayout>
 
 </RelativeLayout>

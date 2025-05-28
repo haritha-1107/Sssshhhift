@@ -3,6 +3,16 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Basic permissions -->
+
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -23,14 +33,13 @@
     <!-- Bluetooth permissions -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-    <!-- For Android 12+ -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 
     <!-- Mobile data permissions -->
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
 
-    <!-- Location permissions (for geofencing) -->
+    <!-- Location permissions -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
@@ -40,6 +49,12 @@
 
     <!-- Foreground service permission -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
 
     <application
         android:allowBackup="true"
@@ -52,28 +67,39 @@
         android:theme="@style/Theme.Sssshhhift"
         tools:targetApi="31">
 
-        <!-- Main Activity -->
+        <!-- SplashActivity (temporarily without theme) -->
         <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:theme="@style/Theme.Sssshhhift">
+            android:name=".activities.SplashActivity"
+
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- Add Profile Activity -->
+        <!-- MainActivity -->
         <activity
-            android:name=".activities.AddProfileActivity"
-            android:exported="false"
-            android:parentActivityName=".MainActivity" />
+            android:name="MainActivity"
+            android:exported="false" />
 
-        <!-- Edit Profile Activity -->
+        <!-- OnboardingActivity -->
         <activity
-            android:name=".activities.EditProfileActivity"
+            android:name=".activities.OnboardingActivity"
             android:exported="false"
-            android:parentActivityName=".MainActivity" />
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".activities.LocationPickerActivity"
+            android:exported="false"
+            android:label="Select Location"
+            android:parentActivityName=".activities.AddProfileActivity"
+            android:theme="@style/Theme.AppCompat.Light.DarkActionBar" />
+
+        <!-- Profile Activities -->
+        <activity android:name=".activities.AddProfileActivity" android:exported="false" />
+        <activity android:name=".activities.EditProfileActivity" android:exported="false" />
 
         <!-- Content Provider -->
         <provider
@@ -81,7 +107,7 @@
             android:authorities="com.example.sssshhift.provider"
             android:exported="false" />
 
-        <!-- Alarm Receiver -->
+        <!-- Receivers -->
         <receiver
             android:name=".receivers.AlarmReceiver"
             android:enabled="true"
@@ -94,7 +120,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- Boot Receiver -->
         <receiver
             android:name=".receivers.BootReceiver"
             android:enabled="true"
@@ -106,25 +131,26 @@
             </intent-filter>
         </receiver>
 
-        <!-- Geofence Receiver -->
         <receiver
             android:name=".receivers.GeofenceReceiver"
             android:enabled="true"
             android:exported="false" />
 
-        <!-- Profile Service -->
+        <!-- Services -->
         <service
             android:name=".services.ProfileService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="specialUse" />
-
-        <!-- Bluetooth Monitor Service -->
+            android:foregroundServiceType="location" />
         <service
             android:name=".services.BluetoothMonitorService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
+
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyDkTWTg8RWjVa4Sn9PVQkP4hVaWCJpi_VQ" />
 
     </application>
 

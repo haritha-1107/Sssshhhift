@@ -5,6 +5,7 @@ import android.annotation.SuppressLint;
 import android.app.TimePickerDialog;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
@@ -71,6 +72,7 @@ public class AddProfileActivity extends AppCompatActivity implements LocationLis
 
     // Constants
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
+    private static final int LOCATION_PICKER_REQUEST_CODE = 2001;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -265,7 +267,8 @@ public class AddProfileActivity extends AppCompatActivity implements LocationLis
     }
 
     private void showLocationPicker() {
-        Toast.makeText(this, "Use 'Get Current Location' or implement Places API", Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, LocationPickerActivity.class);
+        startActivityForResult(intent, LOCATION_PICKER_REQUEST_CODE);
     }
 
     @SuppressLint("MissingPermission")
@@ -507,4 +510,21 @@ public class AddProfileActivity extends AppCompatActivity implements LocationLis
             locationManager.removeUpdates(this);
         }
     }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == LOCATION_PICKER_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
+            selectedLatitude = data.getDoubleExtra("latitude", 0.0);
+            selectedLongitude = data.getDoubleExtra("longitude", 0.0);
+            String locationName = data.getStringExtra("locationName");
+
+            isLocationSelected = true;
+            selectedLocationText.setText("Selected: " + locationName);
+            selectedLocationText.setVisibility(View.VISIBLE);
+
+            Toast.makeText(this, "Location selected successfully", Toast.LENGTH_SHORT).show();
+        }
+    }
+
 }

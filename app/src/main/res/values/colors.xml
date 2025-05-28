@@ -1,23 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="background_primary">#F5F5F5</color>
+    <!-- Primary App Colors -->
+    <color name="primary_color">#2196F3</color>
+    <color name="primary_dark">#1976D2</color>
+    <color name="accent_color">#FF9800</color>
+
+    <!-- Text Colors for White Background -->
+    <color name="primary_text">#212121</color>
+    <color name="secondary_text">#757575</color>
+    <color name="tertiary_text">#BDBDBD</color>
+
+    <!-- Status Colors -->
+    <color name="error_red">#F44336</color>
+    <color name="success_green">#4CAF50</color>
+    <color name="warning_orange">#FF9800</color>
+
+    <!-- Background Colors -->
     <color name="white">#FFFFFF</color>
-    <color name="fab_background">#6200EE</color>
-    <color name="fab_ripple">#BB86FC</color>
-    <color name="primary_color">#6200EE</color>
-    <color name="track_color">#D1C4E9</color>
-    <color name="overlay_background">#80000000</color>
-<!--    <color name="ripple_color">#FFDDDDDD</color>-->
-    <color name="chip_background_inactive">#E0E0E0</color> <!-- Light gray background -->
-    <color name="text_secondary">#666666</color>           <!-- Medium gray text -->
-    <!-- Primary Colors -->
-    <color name="primary">#6200EE</color>
-    <color name="primary_variant">#3700B3</color>
-    <color name="secondary">#03DAC5</color>
+    <color name="black">#000000</color>
+    <color name="light_gray">#F5F5F5</color>
+    <color name="medium_gray">#E0E0E0</color>
 
+    <!-- Transparency Variants -->
+    <color name="white_80">#CCFFFFFF</color>
+    <color name="white_60">#99FFFFFF</color>
+    <color name="white_40">#66FFFFFF</color>
+    <color name="black_80">#CC000000</color>
+    <color name="black_60">#99000000</color>
+    <color name="black_40">#66000000</color>
 
-
-    <!-- Optional Light Backgrounds -->
-    <color name="background_light">#FAFAFA</color>
-
+    <!-- Theme Specific -->
+    <color name="splash_background">@color/white</color>
+    <color name="splash_primary_text">@color/primary_text</color>
+    <color name="splash_secondary_text">@color/secondary_text</color>
 </resources>
