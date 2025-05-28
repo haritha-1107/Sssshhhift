@@ -24,6 +24,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.sssshhift.data.ProfileDatabaseHelper;
+import com.example.sssshhift.geofencing.GeofenceManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -388,9 +389,51 @@ public class AddProfileActivity extends AppCompatActivity implements LocationLis
             if (result != null) {
                 Toast.makeText(this, "Profile created successfully!", Toast.LENGTH_SHORT).show();
 
-                // Schedule the profile if it's time-based
+                // Schedule the profile based on trigger type
                 if (isTimeBased) {
                     ProfileUtils.scheduleProfile(this, profileName, true, selectedTime, selectedEndTime);
+                } else {
+                    // CREATE GEOFENCE FOR LOCATION-BASED PROFILES
+                    GeofenceManager geofenceManager = new GeofenceManager(this);
+
+                    // Get location name from the selected location text or use coordinates
+                    String locationName = selectedLocationText.getText().toString();
+                    if (locationName.startsWith("Selected: ")) {
+                        locationName = locationName.substring("Selected: ".length());
+                    } else {
+                        locationName = selectedLatitude + ", " + selectedLongitude;
+                    }
+
+                    // Default radius of 100 meters
+                    float radius = 100f;
+
+                    geofenceManager.addProfileGeofence(
+                            profileName,           // profileId
+                            locationName,          // locationName
+                            selectedLatitude,      // latitude
+                            selectedLongitude,     // longitude
+                            radius,               // radius
+                            new GeofenceManager.GeofenceManagerCallback() {
+                                @Override
+                                public void onGeofenceAdded(String geofenceId, boolean success, String message) {
+                                    if (success) {
+                                        Toast.makeText(AddProfileActivity.this, "Geofence created successfully!", Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        Toast.makeText(AddProfileActivity.this, "Profile created but geofence setup failed: " + message, Toast.LENGTH_LONG).show();
+                                    }
+                                }
+
+                                @Override
+                                public void onGeofenceRemoved(String geofenceId, boolean success, String message) {
+                                    // Not used in this context
+                                }
+
+                                @Override
+                                public void onError(String error) {
+                                    Toast.makeText(AddProfileActivity.this, "Geofence error: " + error, Toast.LENGTH_LONG).show();
+                                }
+                            }
+                    );
                 }
 
                 // Return to previous activity

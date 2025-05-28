@@ -6,13 +6,16 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.media.AudioManager;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 import androidx.core.app.NotificationCompat;
 import com.google.android.gms.location.Geofence;
 import com.example.sssshhift.R;
+import com.example.sssshhift.data.ProfileDatabaseHelper;
 
 public class ProfileService extends Service {
 
@@ -32,6 +35,8 @@ public class ProfileService extends Service {
 
     private AudioManager audioManager;
     private NotificationManager notificationManager;
+    private ProfileDatabaseHelper dbHelper;
+    private Handler handler;
 
     @Override
     public void onCreate() {
@@ -40,6 +45,8 @@ public class ProfileService extends Service {
 
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        dbHelper = new ProfileDatabaseHelper(this);
+        handler = new Handler();
 
         createNotificationChannel();
     }
@@ -113,15 +120,19 @@ public class ProfileService extends Service {
         Log.d(TAG, "Entered geofence: " + geofenceId);
 
         // Extract profile ID from geofence ID (assuming format includes "profile_")
-        String profileId = extractProfileIdFromGeofenceId(geofenceId);
-        if (profileId != null) {
-            applyProfileSettings(profileId);
-            updateForegroundNotification("Profile activated: " + profileId);
+        String profileName = extractProfileNameFromGeofenceId(geofenceId);
+        if (profileName != null) {
+            // Check if profile is active in database
+            if (isProfileActive(profileName)) {
+                applyProfileSettings(profileName);
+                updateForegroundNotification("Profile activated: " + profileName);
+            } else {
+                Log.d(TAG, "Profile " + profileName + " is not active, skipping");
+                updateForegroundNotification("Profile " + profileName + " is inactive");
+            }
         } else {
-            Log.w(TAG, "Could not extract profile ID from: " + geofenceId);
-            // Apply silent mode as default
-            applySilentMode();
-            updateForegroundNotification("Silent mode activated");
+            Log.w(TAG, "Could not extract profile name from: " + geofenceId);
+            updateForegroundNotification("Unknown geofence entered");
         }
     }
 
@@ -129,14 +140,19 @@ public class ProfileService extends Service {
         Log.d(TAG, "Exited geofence: " + geofenceId);
 
         // Extract profile ID from geofence ID
-        String profileId = extractProfileIdFromGeofenceId(geofenceId);
-        if (profileId != null) {
-            revertProfileSettings(profileId);
-            updateForegroundNotification("Profile deactivated: " + profileId);
+        String profileName = extractProfileNameFromGeofenceId(geofenceId);
+        if (profileName != null) {
+            // Check if profile is active in database
+            if (isProfileActive(profileName)) {
+                revertProfileSettings(profileName);
+                updateForegroundNotification("Profile deactivated: " + profileName);
+            } else {
+                Log.d(TAG, "Profile " + profileName + " is not active, skipping");
+                updateForegroundNotification("Profile " + profileName + " is inactive");
+            }
         } else {
-            // Revert to normal mode as default
-            revertToNormalMode();
-            updateForegroundNotification("Normal mode restored");
+            Log.w(TAG, "Could not extract profile name from: " + geofenceId);
+            updateForegroundNotification("Unknown geofence exited");
         }
     }
 
@@ -145,8 +161,14 @@ public class ProfileService extends Service {
         Log.d(TAG, "Applying profile: " + profileId);
 
         if (profileId != null) {
-            applyProfileSettings(profileId);
-            updateForegroundNotification("Applied profile: " + profileId);
+            // Check if profile is active in database
+            if (isProfileActive(profileId)) {
+                applyProfileSettings(profileId);
+                updateForegroundNotification("Applied profile: " + profileId);
+            } else {
+                Log.d(TAG, "Profile " + profileId + " is not active, skipping");
+                updateForegroundNotification("Profile " + profileId + " is inactive");
+            }
         }
 
         postDelayed(() -> stopSelf(), 1000);
@@ -164,7 +186,7 @@ public class ProfileService extends Service {
         postDelayed(() -> stopSelf(), 1000);
     }
 
-    private String extractProfileIdFromGeofenceId(String geofenceId) {
+    private String extractProfileNameFromGeofenceId(String geofenceId) {
         // Handle different geofence ID formats
         if (geofenceId.contains("profile_")) {
             try {
@@ -179,15 +201,85 @@ public class ProfileService extends Service {
                     return profilePart;
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Error extracting profile ID: " + e.getMessage());
+                Log.e(TAG, "Error extracting profile name: " + e.getMessage());
             }
         }
         return null; // Return null if pattern doesn't match
     }
 
-    private void applyProfileSettings(String profileId) {
-        Log.d(TAG, "Applying settings for profile: " + profileId);
-        applySilentMode();
+    private boolean isProfileActive(String profileName) {
+        try {
+            Cursor cursor = dbHelper.getReadableDatabase().query(
+                    "profiles",
+                    new String[]{"is_active"},
+                    "name = ?",
+                    new String[]{profileName},
+                    null, null, null
+            );
+
+            if (cursor != null && cursor.moveToFirst()) {
+                int isActiveIndex = cursor.getColumnIndex("is_active");
+                if (isActiveIndex != -1) {
+                    boolean isActive = cursor.getInt(isActiveIndex) == 1;
+                    cursor.close();
+                    Log.d(TAG, "Profile " + profileName + " active status: " + isActive);
+                    return isActive;
+                }
+                cursor.close();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error checking profile active status: " + e.getMessage(), e);
+        }
+
+        Log.d(TAG, "Profile " + profileName + " not found or error occurred, assuming inactive");
+        return false;
+    }
+
+    private void applyProfileSettings(String profileName) {
+        Log.d(TAG, "Applying settings for profile: " + profileName);
+
+        try {
+            // Get profile settings from database
+            Cursor cursor = dbHelper.getReadableDatabase().query(
+                    "profiles",
+                    new String[]{"silent_mode", "vibration_mode", "do_not_disturb"},
+                    "name = ?",
+                    new String[]{profileName},
+                    null, null, null
+            );
+
+            if (cursor != null && cursor.moveToFirst()) {
+                int silentModeIndex = cursor.getColumnIndex("silent_mode");
+                int vibrationModeIndex = cursor.getColumnIndex("vibration_mode");
+                int dndModeIndex = cursor.getColumnIndex("do_not_disturb");
+
+                if (silentModeIndex != -1) {
+                    boolean silentMode = cursor.getInt(silentModeIndex) == 1;
+                    boolean vibrationMode = vibrationModeIndex != -1 ? cursor.getInt(vibrationModeIndex) == 1 : false;
+                    boolean dndMode = dndModeIndex != -1 ? cursor.getInt(dndModeIndex) == 1 : false;
+
+                    Log.d(TAG, "Profile settings - Silent: " + silentMode + ", Vibration: " + vibrationMode + ", DND: " + dndMode);
+
+                    if (silentMode) {
+                        applySilentMode();
+                    } else if (vibrationMode) {
+                        applyVibrationMode();
+                    }
+
+                    if (dndMode) {
+                        applyDoNotDisturbMode();
+                    }
+                }
+                cursor.close();
+            } else {
+                Log.w(TAG, "Profile " + profileName + " not found in database, applying default silent mode");
+                applySilentMode();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting profile settings: " + e.getMessage(), e);
+            // Fallback to silent mode
+            applySilentMode();
+        }
     }
 
     private void applySilentMode() {
@@ -195,14 +287,6 @@ public class ProfileService extends Service {
             if (audioManager == null) {
                 Log.e(TAG, "AudioManager is null");
                 return;
-            }
-
-            // Check for Do Not Disturb permission on Android 6.0+
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (notificationManager != null && !notificationManager.isNotificationPolicyAccessGranted()) {
-                    Log.e(TAG, "Do Not Disturb access not granted - trying AudioManager only");
-                    // Still try to set ringer mode even without DND permission
-                }
             }
 
             // Save current ringer mode for restoration
@@ -213,14 +297,6 @@ public class ProfileService extends Service {
             audioManager.setRingerMode(AudioManager.RINGER_MODE_SILENT);
             Log.d(TAG, "Silent mode applied successfully");
 
-            // For Android 6.0+, also try to set Do Not Disturb if we have permission
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (notificationManager != null && notificationManager.isNotificationPolicyAccessGranted()) {
-                    notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE);
-                    Log.d(TAG, "Do Not Disturb mode applied");
-                }
-            }
-
             storePreviousRingerMode(currentRingerMode);
 
         } catch (SecurityException e) {
@@ -230,8 +306,48 @@ public class ProfileService extends Service {
         }
     }
 
-    private void revertProfileSettings(String profileId) {
-        Log.d(TAG, "Reverting settings for profile: " + profileId);
+    private void applyVibrationMode() {
+        try {
+            if (audioManager == null) {
+                Log.e(TAG, "AudioManager is null");
+                return;
+            }
+
+            // Save current ringer mode for restoration
+            int currentRingerMode = audioManager.getRingerMode();
+            Log.d(TAG, "Current ringer mode: " + currentRingerMode);
+
+            // Apply vibration mode
+            audioManager.setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
+            Log.d(TAG, "Vibration mode applied successfully");
+
+            storePreviousRingerMode(currentRingerMode);
+
+        } catch (SecurityException e) {
+            Log.e(TAG, "Security exception when applying vibration mode: " + e.getMessage());
+        } catch (Exception e) {
+            Log.e(TAG, "Error applying vibration mode: " + e.getMessage());
+        }
+    }
+
+    private void applyDoNotDisturbMode() {
+        try {
+            // For Android 6.0+, set Do Not Disturb if we have permission
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (notificationManager != null && notificationManager.isNotificationPolicyAccessGranted()) {
+                    notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE);
+                    Log.d(TAG, "Do Not Disturb mode applied");
+                } else {
+                    Log.w(TAG, "Do Not Disturb access not granted");
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error applying Do Not Disturb mode: " + e.getMessage());
+        }
+    }
+
+    private void revertProfileSettings(String profileName) {
+        Log.d(TAG, "Reverting settings for profile: " + profileName);
         revertToNormalMode();
     }
 
@@ -246,6 +362,14 @@ public class ProfileService extends Service {
             int previousRingerMode = getPreviousRingerMode();
             audioManager.setRingerMode(previousRingerMode);
             Log.d(TAG, "Ringer mode restored to: " + previousRingerMode);
+
+            // Restore Do Not Disturb mode
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (notificationManager != null && notificationManager.isNotificationPolicyAccessGranted()) {
+                    notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL);
+                    Log.d(TAG, "Do Not Disturb mode restored");
+                }
+            }
 
         } catch (SecurityException e) {
             Log.e(TAG, "Security exception when reverting to normal mode: " + e.getMessage());
@@ -309,18 +433,25 @@ public class ProfileService extends Service {
     }
 
     private void postDelayed(Runnable runnable, long delayMillis) {
-        new android.os.Handler(android.os.Looper.getMainLooper())
-                .postDelayed(runnable, delayMillis);
+        if (handler != null) {
+            handler.postDelayed(runnable, delayMillis);
+        }
     }
 
     @Override
     public IBinder onBind(Intent intent) {
-        return null; // We don't provide binding
+        return null;
     }
 
     @Override
     public void onDestroy() {
-        Log.d(TAG, "ProfileService destroyed");
         super.onDestroy();
+        Log.d(TAG, "ProfileService destroyed");
+        if (handler != null) {
+            handler.removeCallbacksAndMessages(null);
+        }
+        if (dbHelper != null) {
+            dbHelper.close();
+        }
     }
 }

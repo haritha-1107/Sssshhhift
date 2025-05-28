@@ -60,7 +60,7 @@ public class GeofenceManager {
         void onError(String error);
     }
 
-    private GeofenceManager(Context context) {
+    public GeofenceManager(Context context) {
         this.context = context.getApplicationContext();
         this.geofenceHelper = new GeofenceHelper(this.context);
         this.activeGeofences = new HashMap<>();
@@ -72,6 +72,7 @@ public class GeofenceManager {
         }
         return instance;
     }
+// In GeofenceManager.java, fix the addProfileGeofence method:
 
     /**
      * Add a geofence for a profile
@@ -102,11 +103,15 @@ public class GeofenceManager {
             return;
         }
 
-        // Create unique geofence ID
+        // IMPORTANT: Create geofence ID that includes the actual profile ID
+        // This format allows GeofenceReceiver to extract the profile ID
         String geofenceId = "profile_" + profileId + "_" + System.currentTimeMillis();
 
         // Create geofence data
         GeofenceData geofenceData = new GeofenceData(geofenceId, profileId, latitude, longitude, radius, locationName);
+
+        Log.d(TAG, "Creating geofence: " + geofenceId + " for profile: " + profileId);
+        Log.d(TAG, "Location: " + latitude + ", " + longitude + ", radius: " + radius);
 
         // Add geofence using helper
         geofenceHelper.addGeofence(geofenceId, latitude, longitude, radius, new GeofenceHelper.GeofenceCallback() {
@@ -130,7 +135,6 @@ public class GeofenceManager {
             }
         });
     }
-
     /**
      * Remove a specific geofence
      */

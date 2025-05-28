@@ -95,10 +95,12 @@ public class HomeFragment extends Fragment implements ProfileAdapter.OnProfileIn
     }
 
     // FIXED: Toggle only updates database status and schedules/cancels alarms (NO immediate action)
+// FIXED: Update HomeFragment onProfileToggle to handle geofences
+
     @Override
     public void onProfileToggle(Profile profile, boolean isActive) {
         try {
-            // Update database first
+            // Update database status
             ContentValues values = new ContentValues();
             values.put("is_active", isActive ? 1 : 0);
 
@@ -117,25 +119,27 @@ public class HomeFragment extends Fragment implements ProfileAdapter.OnProfileIn
                 profile.setActive(isActive);
 
                 if (isActive) {
-                    // Schedule the profile (don't apply immediately - just schedule!)
+                    // Register/schedule the profile based on type
                     if ("time".equals(profile.getTriggerType())) {
+                        // Time-based: Schedule alarms
                         ProfileUtils.scheduleProfile(requireContext(), profile.getName(), true, profile.getTriggerValue(), profile.getEndTime());
-                    } else {
+                    } else if ("location".equals(profile.getTriggerType())) {
+                        // Location-based: Register geofences
                         ProfileUtils.scheduleProfile(requireContext(), profile.getName(), false, profile.getTriggerValue(), profile.getEndTime());
                     }
 
-                    String message = "Profile '" + profile.getName() + "' enabled and scheduled!";
-                    if (profile.getEndTime() != null && !profile.getEndTime().isEmpty()) {
-                        message += " (Duration: " + profile.getTriggerValue() + " - " + profile.getEndTime() + ")";
-                    }
-                    Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "Profile '" + profile.getName() + "' enabled", Toast.LENGTH_SHORT).show();
                 } else {
-                    // Cancel the scheduled profile
-                    ProfileUtils.cancelProfile(requireContext(), profile.getName());
+                    // Cancel/unregister the profile based on type
+                    if ("time".equals(profile.getTriggerType())) {
+                        // Time-based: Cancel alarms
+                        ProfileUtils.cancelProfile(requireContext(), profile.getName());
+                    } else if ("location".equals(profile.getTriggerType())) {
+                        // Location-based: Remove geofences
+                        ProfileUtils.cancelLocationProfile(requireContext(), profile.getName());
+                    }
 
-                    Toast.makeText(getContext(),
-                            "Profile '" + profile.getName() + "' disabled",
-                            Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "Profile '" + profile.getName() + "' disabled", Toast.LENGTH_SHORT).show();
                 }
 
                 // Refresh the adapter to update UI
