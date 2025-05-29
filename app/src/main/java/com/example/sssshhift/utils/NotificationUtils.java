@@ -1,5 +1,6 @@
 package com.example.sssshhift.utils;
 
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -95,6 +96,7 @@ public class NotificationUtils {
     }
     // Add this method to your NotificationUtils.java class
 
+    @SuppressLint("MissingPermission")
     public static void showWifiToggleNotification(Context context, boolean enable) {
         String title = "Profile Action Required";
         String message = "Please " + (enable ? "enable" : "disable") + " WiFi to complete profile activation";
@@ -123,4 +125,33 @@ public class NotificationUtils {
 
     // Add these constants to your NotificationUtils class
     private static final int WIFI_TOGGLE_NOTIFICATION_ID = 1002;
+
+
+    public static void showPermissionRequiredNotification(Context context) {
+        String title = "Calendar Permission Needed";
+        String message = "Please allow calendar access for automatic profile activation.";
+
+        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        intent.setData(android.net.Uri.parse("package:" + context.getPackageName()));
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                context,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_calendar) // Ensure this icon exists or use an existing one
+                .setContentTitle(title)
+                .setContentText(message)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .addAction(R.drawable.ic_settings, "Open Settings", pendingIntent);
+
+        NotificationManagerCompat manager = NotificationManagerCompat.from(context);
+        manager.notify(1003, builder.build());
+    }
+
+
 }

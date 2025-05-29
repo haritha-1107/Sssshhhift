@@ -1,19 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <!-- Primary App Colors -->
     <color name="primary_color">#2196F3</color>
     <color name="primary_dark">#1976D2</color>
     <color name="accent_color">#FF9800</color>
 
+    <!-- Add theme-compatible primary/secondary colors -->
+    <color name="primary">#2196F3</color>
+    <color name="primary_variant">#1976D2</color>
+    <color name="on_primary">#FFFFFF</color>
+
+    <color name="secondary">#FF9800</color>
+    <color name="secondary_variant">#F57C00</color>
+    <color name="on_secondary">#000000</color>
+
+    <!-- Background and surface -->
+    <color name="background_primary">#FFFFFF</color>
+    <color name="on_background">#212121</color>
+    <color name="surface">#F5F5F5</color>
+    <color name="on_surface">#212121</color>
+
     <!-- Text Colors for White Background -->
     <color name="primary_text">#212121</color>
     <color name="secondary_text">#757575</color>
     <color name="tertiary_text">#BDBDBD</color>
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_disabled">#BDBDBD</color>
 
     <!-- Status Colors -->
     <color name="error_red">#F44336</color>
     <color name="success_green">#4CAF50</color>
     <color name="warning_orange">#FF9800</color>
+
+    <!-- Theme-compliant status -->
+    <color name="error">#F44336</color>
+    <color name="success">#4CAF50</color>
+    <color name="warning">#FF9800</color>
+    <color name="info">#03A9F4</color> <!-- Optional info color for consistency -->
 
     <!-- Background Colors -->
     <color name="white">#FFFFFF</color>
@@ -29,8 +54,26 @@
     <color name="black_60">#99000000</color>
     <color name="black_40">#66000000</color>
 
+    <!-- Ripple & overlay -->
+    <color name="ripple_light">#1A000000</color>
+    <color name="overlay_background">#80000000</color>
+
     <!-- Theme Specific -->
     <color name="splash_background">@color/white</color>
     <color name="splash_primary_text">@color/primary_text</color>
     <color name="splash_secondary_text">@color/secondary_text</color>
+
+    <!-- Status colors -->
+    <color name="status_connected">#4CAF50</color>
+    <color name="status_disconnected">#F44336</color>
+    <color name="status_connecting">#FF9800</color>
+
+    <!-- Card colors -->
+    <color name="card_background">#FFFFFF</color>
+    <color name="card_border">#E0E0E0</color>
+    <color name="background_color">#F5F5F5</color>
+    <color name="accent">#FF4081</color>
+
 </resources>
+
+

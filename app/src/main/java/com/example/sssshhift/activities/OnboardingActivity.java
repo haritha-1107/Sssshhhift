@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.widget.Button;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
+
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.example.sssshhift.R;
@@ -31,6 +32,9 @@ public class OnboardingActivity extends AppCompatActivity {
         initViews();
         setupViewPager();
         setupClickListeners();
+
+        // REMOVED: Permission request from here
+        // The permissions should be requested in MainActivity after onboarding is complete
     }
 
     private void initViews() {
@@ -75,12 +79,14 @@ public class OnboardingActivity extends AppCompatActivity {
     }
 
     private void completeOnboarding() {
+        // Mark onboarding as completed
         prefs.edit().putBoolean("onboarding_completed", true).apply();
 
+        // Navigate to MainActivity where permissions will be requested
         Intent intent = new Intent(OnboardingActivity.this, MainActivity.class);
+        intent.putExtra("request_permissions_on_start", true); // Flag to indicate first time setup
         startActivity(intent);
         finish();
-
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 

@@ -48,5 +48,20 @@
     <!-- Navigation Colors -->
     <color name="nav_background">#1E293B</color>       <!-- Dark navigation background -->
     <color name="nav_selected">#818CF8</color>         <!-- Selected nav item -->
-    <color name="nav_unselected">#94A3B8</color>       <!-- Unselected nav item -->
+    <color name="nav_unselected">#94A3B8</color>
+
+    <color name="primary_dark">#1976D2</color>
+    <color name="accent_color">#FF5722</color>
+
+    <!-- Status colors -->
+    <color name="status_connected">#4CAF50</color>
+    <color name="status_disconnected">#F44336</color>
+    <color name="status_connecting">#FF9800</color>
+
+    <!-- Card colors -->
+    <color name="card_background">#FFFFFF</color>
+    <color name="card_border">#E0E0E0</color>
+    <color name="background_color">#F5F5F5</color>
+    <color name="accent">#FF4081</color>
+    <!-- Unselected nav item -->
 </resources>

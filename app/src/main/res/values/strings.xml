@@ -3,4 +3,53 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 <string name="add_profile">Add Profile</string>
+
+<!-- Existing strings... -->
+
+<!-- Connectivity Settings -->
+<string name="connectivity_settings_title">Connectivity Settings</string>
+<string name="bluetooth_title">Bluetooth</string>
+<string name="wifi_title">WiFi</string>
+<string name="scan_bluetooth_devices">Scan for Devices</string>
+<string name="scan_wifi_networks">Scan for Networks</string>
+<string name="available_devices">Available Devices</string>
+<string name="available_networks">Available Networks</string>
+<string name="quick_actions">Quick Actions</string>
+<string name="bluetooth_settings">BT Settings</string>
+<string name="wifi_settings">WiFi Settings</string>
+
+<!-- Status messages -->
+<string name="bluetooth_on">Bluetooth is ON</string>
+<string name="bluetooth_off">Bluetooth is OFF</string>
+<string name="wifi_on">WiFi is ON</string>
+<string name="wifi_off">WiFi is OFF</string>
+<string name="bluetooth_not_supported">Bluetooth not supported</string>
+<string name="wifi_not_supported">WiFi not supported</string>
+
+<!-- Permissions -->
+<string name="bluetooth_permissions_required">Bluetooth permissions required</string>
+<string name="wifi_permissions_required">WiFi permissions required</string>
+<string name="location_permission_rationale">Location permission is required for WiFi scanning and Bluetooth device discovery.</string>
+
+<!-- Actions -->
+<string name="pair">Pair</string>
+<string name="unpair">Unpair</string>
+<string name="connect">Connect</string>
+<string name="disconnect">Disconnect</string>
+<string name="cancel">Cancel</string>
+<string name="scanning">Scanning...</string>
+
+<!-- Notifications -->
+<string name="pairing_with_device">Pairing with %s</string>
+<string name="connected_to_device">Connected to %s</string>
+<string name="disconnected_from_device">Disconnected from %s</string>
+<string name="connecting_to_network">Connecting to %s</string>
+<string name="connected_to_network">Connected to %s</string>
+
+<!-- Settings -->
+<string name="settings_title">Settings</string>
+<string name="onboarding_title">Welcome</string>
+<string name="add_profile_title">Add Profile</string>
+<string name="edit_profile_title">Edit Profile</string>
+<string name="location_picker_title">Pick Location</string>
 </resources>
