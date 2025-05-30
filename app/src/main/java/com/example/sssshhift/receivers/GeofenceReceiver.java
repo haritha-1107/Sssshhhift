@@ -17,6 +17,11 @@ public class GeofenceReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         Log.d(TAG, "GeofenceReceiver triggered");
 
+        if (context == null || intent == null) {
+            Log.e(TAG, "Context or Intent is null");
+            return;
+        }
+
         GeofencingEvent geofencingEvent = GeofencingEvent.fromIntent(intent);
         if (geofencingEvent == null) {
             Log.e(TAG, "GeofencingEvent is null");
@@ -24,12 +29,15 @@ public class GeofenceReceiver extends BroadcastReceiver {
         }
 
         if (geofencingEvent.hasError()) {
-            Log.e(TAG, "Geofencing error: " + geofencingEvent.getErrorCode());
+            int errorCode = geofencingEvent.getErrorCode();
+            Log.e(TAG, "Geofencing error: " + errorCode + " - " +
+                    com.example.sssshhift.geofencing.GeofenceHelper.getErrorString(errorCode));
             return;
         }
 
         // Get the transition type
         int geofenceTransition = geofencingEvent.getGeofenceTransition();
+        Log.d(TAG, "Geofence transition: " + getTransitionString(geofenceTransition));
 
         // Test that the reported transition was of interest
         if (geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER ||
@@ -40,25 +48,52 @@ public class GeofenceReceiver extends BroadcastReceiver {
 
             if (triggeringGeofences != null && !triggeringGeofences.isEmpty()) {
                 for (Geofence geofence : triggeringGeofences) {
-                    Log.d(TAG, "Geofence triggered: " + geofence.getRequestId() +
-                            ", Transition: " + geofenceTransition);
+                    String geofenceId = geofence.getRequestId();
+                    Log.d(TAG, "Processing geofence: " + geofenceId +
+                            ", Transition: " + getTransitionString(geofenceTransition));
 
-                    // Start ProfileService to handle the geofence transition
-                    Intent serviceIntent = new Intent(context, ProfileService.class);
-                    serviceIntent.setAction(ProfileService.ACTION_GEOFENCE_TRANSITION);
-                    serviceIntent.putExtra(ProfileService.EXTRA_GEOFENCE_ID, geofence.getRequestId());
-                    serviceIntent.putExtra(ProfileService.EXTRA_TRANSITION_TYPE, geofenceTransition);
-
-                    // Start as foreground service for Android 8.0+
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                        context.startForegroundService(serviceIntent);
-                    } else {
-                        context.startService(serviceIntent);
-                    }
+                    // Handle geofence transition
+                    handleGeofenceTransition(context, geofenceId, geofenceTransition);
                 }
+            } else {
+                Log.w(TAG, "No triggering geofences found");
             }
         } else {
-            Log.e(TAG, "Geofence transition error: Invalid transition type: " + geofenceTransition);
+            Log.w(TAG, "Invalid geofence transition type: " + geofenceTransition);
+        }
+    }
+
+    private void handleGeofenceTransition(Context context, String geofenceId, int transitionType) {
+        try {
+            // Start ProfileService to handle the geofence transition
+            Intent serviceIntent = new Intent(context, ProfileService.class);
+            serviceIntent.setAction(ProfileService.ACTION_GEOFENCE_TRANSITION);
+            serviceIntent.putExtra(ProfileService.EXTRA_GEOFENCE_ID, geofenceId);
+            serviceIntent.putExtra(ProfileService.EXTRA_TRANSITION_TYPE, transitionType);
+
+            // Start as foreground service for Android 8.0+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent);
+            } else {
+                context.startService(serviceIntent);
+            }
+
+            Log.d(TAG, "Started ProfileService for geofence: " + geofenceId);
+        } catch (Exception e) {
+            Log.e(TAG, "Error starting ProfileService", e);
+        }
+    }
+
+    private String getTransitionString(int transitionType) {
+        switch (transitionType) {
+            case Geofence.GEOFENCE_TRANSITION_ENTER:
+                return "ENTER";
+            case Geofence.GEOFENCE_TRANSITION_EXIT:
+                return "EXIT";
+            case Geofence.GEOFENCE_TRANSITION_DWELL:
+                return "DWELL";
+            default:
+                return "UNKNOWN(" + transitionType + ")";
         }
     }
 }

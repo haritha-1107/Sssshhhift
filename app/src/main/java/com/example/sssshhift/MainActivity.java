@@ -60,6 +60,8 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        checkLocationRequirements();
+
         prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
 
         // Check if this is first time setup after onboarding
@@ -84,6 +86,10 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
             // All permissions already granted, setup services
             setupServicesIfReady();
         }
+    }
+    private void startPermissionFlow() {
+        // Start with a welcome dialog explaining permissions
+        showLocationServicesRequiredDialog();
     }
 
     private void initViews() {
@@ -117,26 +123,9 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         return hasNotificationPolicy && hasLocation && hasCalendar;
     }
 
-    private void startPermissionFlow() {
-        // Start with a welcome dialog explaining permissions
-        showPermissionWelcomeDialog();
-    }
 
-    private void showPermissionWelcomeDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Welcome to Sssshhhift!")
-                .setMessage("To provide you with the best experience, we need to set up a few permissions. " +
-                        "These allow the app to automatically manage your phone's settings based on your location, " +
-                        "calendar events, and other triggers.")
-                .setPositiveButton("Let's Get Started", (dialog, which) -> {
-                    checkAllPermissions();
-                })
-                .setNegativeButton("Maybe Later", (dialog, which) -> {
-                    Toast.makeText(this, "You can enable permissions anytime in Settings", Toast.LENGTH_LONG).show();
-                })
-                .setCancelable(false)
-                .show();
-    }
+
+
 
     private void checkAllPermissions() {
         // Check notification policy permission first
@@ -324,22 +313,8 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         );
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        switch (requestCode) {
-            case LocationUtils.REQUEST_LOCATION_PERMISSIONS:
-                handleLocationPermissionResult(grantResults);
-                break;
-            case LocationUtils.REQUEST_BACKGROUND_LOCATION_PERMISSION:
-                handleBackgroundLocationPermissionResult(grantResults);
-                break;
-            case REQUEST_CALENDAR_PERMISSION:
-                handleCalendarPermissionResult(grantResults);
-                break;
-        }
-    }
+
 
     private void handleLocationPermissionResult(int[] grantResults) {
         boolean allGranted = true;
@@ -386,22 +361,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         completePermissionSetup();
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == REQUEST_DND_PERMISSION) {
-            // DND permission result - continue to location permissions
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-                if (notificationManager.isNotificationPolicyAccessGranted()) {
-                    Toast.makeText(this, "Do Not Disturb access granted", Toast.LENGTH_SHORT).show();
-                }
-            }
-            // Continue to next permission
-            checkLocationPermissions();
-        }
-    }
 
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
@@ -486,6 +446,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
 
         // Check if services should be started (in case permissions were granted outside the app)
         setupServicesIfReady();
+        checkLocationRequirements();
     }
 
     @Override
@@ -513,5 +474,94 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
     // Check if calendar monitoring is currently active
     public boolean isCalendarMonitoringActive() {
         return CalendarMonitorService.isCalendarModeActive(this);
+    }
+
+
+
+    private void checkLocationRequirements() {
+        if (!LocationUtils.isLocationEnabled(this)) {
+            showLocationServicesRequiredDialog();
+        } else if (!LocationUtils.hasAllLocationPermissions(this)) {
+            requestLocationPermissions();
+        }
+    }
+
+    private void showLocationServicesRequiredDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Enable Location Services")
+                .setMessage("This app requires location services to work properly. Would you like to enable them now?")
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    startActivityForResult(intent, REQUEST_ENABLE_LOCATION);
+                })
+                .setNegativeButton("Not Now", (dialog, which) -> {
+                    Toast.makeText(this, "Some features may not work without location services", Toast.LENGTH_LONG).show();
+                })
+                .show();
+    }
+
+    private void requestLocationPermissions() {
+        if (!LocationUtils.hasLocationPermissions(this)) {
+            LocationUtils.requestLocationPermissions(this);
+        } else if (!LocationUtils.hasBackgroundLocationPermission(this)) {
+            // Show explanation for background location
+            showBackgroundLocationDialog();
+        }
+    }
+
+    private void showBackgroundLocationDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Background Location Access")
+                .setMessage("To receive location-based notifications when the app is not active, please allow background location access.")
+                .setPositiveButton("Allow", (dialog, which) -> {
+                    LocationUtils.requestBackgroundLocationPermission(this);
+                })
+                .setNegativeButton("Skip", (dialog, which) -> {
+                    Toast.makeText(this, "Background location features will be limited", Toast.LENGTH_SHORT).show();
+                })
+                .show();
+    }
+    private static final int REQUEST_ENABLE_LOCATION = 1001;
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_ENABLE_LOCATION) {
+            // Check if location is now enabled
+            if (LocationUtils.isLocationEnabled(this)) {
+                Toast.makeText(this, "Location services enabled!", Toast.LENGTH_SHORT).show();
+                // Continue with your location-based functionality
+                checkLocationRequirements();
+            } else {
+                Toast.makeText(this, "Location services are still disabled", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        switch (requestCode) {
+            case LocationUtils.REQUEST_LOCATION_PERMISSIONS:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Basic location permission granted, now check background permission
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        showBackgroundLocationDialog();
+                    }
+                } else {
+                    Toast.makeText(this, "Location permission is required for this app to work", Toast.LENGTH_LONG).show();
+                }
+                break;
+
+            case LocationUtils.REQUEST_BACKGROUND_LOCATION_PERMISSION:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Background location access granted!", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Background location access denied. Some features may be limited.", Toast.LENGTH_LONG).show();
+                }
+                break;
+        }
     }
 }

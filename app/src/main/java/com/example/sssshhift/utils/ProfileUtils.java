@@ -5,61 +5,67 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
-import android.widget.Toast;
+import android.provider.Settings;
 import android.util.Log;
+import android.widget.Toast;
 
-import com.example.sssshhift.receivers.AlarmReceiver;
+import com.example.sssshhift.receivers.ProfileTimerReceiver;
 
 import java.util.Calendar;
 
 public class ProfileUtils {
     private static final String TAG = "ProfileUtils";
 
-    // Updated method with end time support
-    public static void scheduleProfile(Context context, String profileName, boolean isTimeBased, String triggerValue, String endTime) {
-        if (isTimeBased) {
-            scheduleTimeBasedProfile(context, profileName, triggerValue, endTime);
-        } else {
-            scheduleLocationBasedProfile(context, profileName, triggerValue);
-        }
-    }
-
-    // Legacy method for backward compatibility
-    public static void scheduleProfile(Context context, String profileName, boolean isTimeBased, String triggerValue) {
-        scheduleProfile(context, profileName, isTimeBased, triggerValue, null);
-    }
-
-    private static void scheduleTimeBasedProfile(Context context, String profileName, String startTime, String endTime) {
+    public static void scheduleProfile(Context context, String profileName, boolean isStartTime, String time, String endTime) {
         try {
-            // Check if we have permission to schedule exact alarms (Android 12+)
-            if (!canScheduleExactAlarms(context)) {
-                Toast.makeText(context, "Please enable exact alarm permission in settings", Toast.LENGTH_LONG).show();
-                return;
+            // Schedule start time
+            if (time != null && !time.isEmpty()) {
+                scheduleProfileAlarm(context, profileName, time, true);
+                Log.d(TAG, "Scheduled start alarm for profile: " + profileName + " at " + time);
             }
 
-            // Schedule START alarm
-            scheduleAlarm(context, profileName, startTime, true);
-
-            // Schedule END alarm if end time is provided
+            // Schedule end time if provided
             if (endTime != null && !endTime.isEmpty()) {
-                scheduleAlarm(context, profileName, endTime, false);
-                Toast.makeText(context, "Profile scheduled: " + startTime + " to " + endTime + " daily", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(context, "Profile scheduled for " + startTime + " daily", Toast.LENGTH_SHORT).show();
+                scheduleProfileAlarm(context, profileName, endTime, false);
+                Log.d(TAG, "Scheduled end alarm for profile: " + profileName + " at " + endTime);
             }
 
         } catch (Exception e) {
-            Log.e(TAG, "Error scheduling profile: " + e.getMessage(), e);
+            Log.e(TAG, "Error scheduling profile: " + profileName, e);
             Toast.makeText(context, "Error scheduling profile: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
-    private static void scheduleAlarm(Context context, String profileName, String time, boolean isStartAlarm) {
+    private static void scheduleProfileAlarm(Context context, String profileName, String time, boolean isStartTime) {
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) {
+            Log.e(TAG, "AlarmManager is null");
+            return;
+        }
+
+        // Check if app can schedule exact alarms (Android 12+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!alarmManager.canScheduleExactAlarms()) {
+                // Request exact alarm permission
+                try {
+                    Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                    Toast.makeText(context, "Please allow exact alarms for timer functionality", Toast.LENGTH_LONG).show();
+                    return;
+                } catch (Exception e) {
+                    Log.e(TAG, "Error requesting exact alarm permission", e);
+                }
+            }
+        }
+
         try {
+            // Parse time (HH:mm format)
             String[] timeParts = time.split(":");
             int hour = Integer.parseInt(timeParts[0]);
             int minute = Integer.parseInt(timeParts[1]);
 
+            // Create calendar instance for today
             Calendar calendar = Calendar.getInstance();
             calendar.set(Calendar.HOUR_OF_DAY, hour);
             calendar.set(Calendar.MINUTE, minute);
@@ -71,22 +77,14 @@ public class ProfileUtils {
                 calendar.add(Calendar.DAY_OF_MONTH, 1);
             }
 
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            if (alarmManager == null) {
-                Log.e(TAG, "AlarmManager is null");
-                return;
-            }
+            // Create unique request code for this alarm
+            int requestCode = generateRequestCode(profileName, isStartTime);
 
-            Intent intent = new Intent(context, AlarmReceiver.class);
+            // Create intent for the alarm receiver
+            Intent intent = new Intent(context, ProfileTimerReceiver.class);
             intent.putExtra("profile_name", profileName);
-            intent.putExtra("is_start_alarm", isStartAlarm);
-
-            // Create unique action for start/end alarms
-            String action = isStartAlarm ? "PROFILE_START_" + profileName : "PROFILE_END_" + profileName;
-            intent.setAction(action);
-
-            // Create unique request code for start/end alarms
-            int requestCode = (profileName + (isStartAlarm ? "_START" : "_END")).hashCode();
+            intent.putExtra("is_start_time", isStartTime);
+            intent.putExtra("scheduled_time", time);
 
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
                     context,
@@ -95,10 +93,7 @@ public class ProfileUtils {
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
 
-            // Cancel any existing alarm first
-            alarmManager.cancel(pendingIntent);
-
-            // Use setExactAndAllowWhileIdle for better reliability on modern Android
+            // Schedule the alarm
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 alarmManager.setExactAndAllowWhileIdle(
                         AlarmManager.RTC_WAKEUP,
@@ -113,65 +108,64 @@ public class ProfileUtils {
                 );
             }
 
-            String alarmType = isStartAlarm ? "START" : "END";
-            Log.d(TAG, alarmType + " alarm scheduled for " + profileName + " at " + time +
-                    " (timestamp: " + calendar.getTimeInMillis() + ")");
+            Log.d(TAG, "Alarm scheduled for " + calendar.getTime() + " (Profile: " + profileName + ", Start: " + isStartTime + ")");
 
         } catch (Exception e) {
-            Log.e(TAG, "Error scheduling alarm: " + e.getMessage(), e);
+            Log.e(TAG, "Error creating alarm for profile: " + profileName, e);
+            throw e;
         }
     }
 
-    private static void scheduleLocationBasedProfile(Context context, String profileName, String location) {
-        // TODO: Implement geofencing
-        Toast.makeText(context, "Location-based profile registered", Toast.LENGTH_SHORT).show();
-    }
+    public static void cancelProfileAlarms(Context context, String profileName) {
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) return;
 
-    // Check if app can schedule exact alarms (required for Android 12+)
-    private static boolean canScheduleExactAlarms(Context context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            return alarmManager != null && alarmManager.canScheduleExactAlarms();
-        }
-        return true; // Always allowed on older Android versions
-    }
-
-    // Method to cancel all alarms for a profile (both start and end)
-    public static void cancelProfile(Context context, String profileName) {
         try {
-            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            if (alarmManager == null) return;
-
-            // Cancel START alarm
-            cancelAlarm(context, alarmManager, profileName, true);
-
-            // Cancel END alarm
-            cancelAlarm(context, alarmManager, profileName, false);
-
-            Log.d(TAG, "Cancelled all alarms for profile: " + profileName);
-        } catch (Exception e) {
-            Log.e(TAG, "Error cancelling profile: " + e.getMessage(), e);
-        }
-    }
-
-    private static void cancelAlarm(Context context, AlarmManager alarmManager, String profileName, boolean isStartAlarm) {
-        try {
-            Intent intent = new Intent(context, AlarmReceiver.class);
-            String action = isStartAlarm ? "PROFILE_START_" + profileName : "PROFILE_END_" + profileName;
-            intent.setAction(action);
-
-            int requestCode = (profileName + (isStartAlarm ? "_START" : "_END")).hashCode();
-
-            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+            // Cancel start time alarm
+            int startRequestCode = generateRequestCode(profileName, true);
+            Intent startIntent = new Intent(context, ProfileTimerReceiver.class);
+            PendingIntent startPendingIntent = PendingIntent.getBroadcast(
                     context,
-                    requestCode,
-                    intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                    startRequestCode,
+                    startIntent,
+                    PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
             );
 
-            alarmManager.cancel(pendingIntent);
+            if (startPendingIntent != null) {
+                alarmManager.cancel(startPendingIntent);
+                startPendingIntent.cancel();
+                Log.d(TAG, "Cancelled start alarm for profile: " + profileName);
+            }
+
+            // Cancel end time alarm
+            int endRequestCode = generateRequestCode(profileName, false);
+            Intent endIntent = new Intent(context, ProfileTimerReceiver.class);
+            PendingIntent endPendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    endRequestCode,
+                    endIntent,
+                    PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            if (endPendingIntent != null) {
+                alarmManager.cancel(endPendingIntent);
+                endPendingIntent.cancel();
+                Log.d(TAG, "Cancelled end alarm for profile: " + profileName);
+            }
+
         } catch (Exception e) {
-            Log.e(TAG, "Error cancelling alarm: " + e.getMessage(), e);
+            Log.e(TAG, "Error cancelling alarms for profile: " + profileName, e);
         }
+    }
+
+    private static int generateRequestCode(String profileName, boolean isStartTime) {
+        // Generate a unique request code based on profile name and type
+        int hash = profileName.hashCode();
+        return Math.abs(hash) + (isStartTime ? 1000 : 2000);
+    }
+
+    // Method to reschedule daily recurring alarms
+    public static void rescheduleProfileForNextDay(Context context, String profileName, String time, boolean isStartTime) {
+        scheduleProfileAlarm(context, profileName, time, isStartTime);
     }
 }

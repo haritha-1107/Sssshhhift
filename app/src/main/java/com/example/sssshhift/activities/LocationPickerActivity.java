@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -14,6 +15,7 @@ import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
@@ -21,7 +23,7 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.sssshhift.geofencing.GeofenceManager;
+import com.example.sssshhift.utils.LocationUtils;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -70,6 +72,8 @@ public class LocationPickerActivity extends AppCompatActivity implements OnMapRe
         setupMap();
         setupSearch();
         checkLocationPermission();
+
+        checkLocationServicesAndPermissions();
     }
 
     private void setupToolbar() {
@@ -236,20 +240,6 @@ public class LocationPickerActivity extends AppCompatActivity implements OnMapRe
         confirmLocationBtn.setText("Confirm: " + selectedLocationName);
     }
 
-    private void confirmSelectedLocation() {
-        if (selectedLocation != null) {
-            Intent resultIntent = new Intent();
-            resultIntent.putExtra("latitude", selectedLocation.latitude);
-            resultIntent.putExtra("longitude", selectedLocation.longitude);
-            resultIntent.putExtra("locationName", selectedLocationName != null ? selectedLocationName : "Selected Location");
-
-            setResult(RESULT_OK, resultIntent);
-            finish();
-        } else {
-            Toast.makeText(this, "Please select a location first", Toast.LENGTH_SHORT).show();
-        }
-    }
-
     private String formatAddress(Address address) {
         StringBuilder sb = new StringBuilder();
 
@@ -316,38 +306,54 @@ public class LocationPickerActivity extends AppCompatActivity implements OnMapRe
         return super.onOptionsItemSelected(item);
     }
 
-    private void setupGeofenceForSelectedLocation(double latitude, double longitude, String locationName) {
-        GeofenceManager geofenceManager = GeofenceManager.getInstance(this);
+    // FIXED: Simplified confirmSelectedLocation method
+    private void confirmSelectedLocation() {
+        if (selectedLocation != null) {
+            Log.d(TAG, "Confirming location: " + selectedLocation.latitude + ", " + selectedLocation.longitude);
 
-        geofenceManager.addProfileGeofence(
-                "silent_zone", // profile ID
-                locationName,  // location name
-                latitude,
-                longitude,
-                100f, // 100 meter radius
-                new GeofenceManager.GeofenceManagerCallback() {
-                    @Override
-                    public void onGeofenceAdded(String geofenceId, boolean success, String message) {
-                        if (success) {
-                            Toast.makeText(LocationPickerActivity.this,
-                                    "Silent zone created for " + locationName, Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(LocationPickerActivity.this,
-                                    "Failed to create silent zone: " + message, Toast.LENGTH_LONG).show();
-                        }
-                    }
+            // Create result intent with selected location data
+            Intent resultIntent = new Intent();
+            resultIntent.putExtra("latitude", selectedLocation.latitude);
+            resultIntent.putExtra("longitude", selectedLocation.longitude);
+            resultIntent.putExtra("locationName", selectedLocationName != null ? selectedLocationName : "Selected Location");
 
-                    @Override
-                    public void onGeofenceRemoved(String geofenceId, boolean success, String message) {
-                        // Handle removal if needed
-                    }
+            // Set result and finish
+            setResult(RESULT_OK, resultIntent);
+            finish();
+        } else {
+            Toast.makeText(this, "Please select a location first", Toast.LENGTH_SHORT).show();
+        }
+    }
+    private void checkLocationServicesAndPermissions() {
+        // Check if location services are enabled
+        if (!LocationUtils.isLocationEnabled(this)) {
+            showLocationServicesDialog();
+            return;
+        }
 
-                    @Override
-                    public void onError(String error) {
-                        Toast.makeText(LocationPickerActivity.this, "Error: " + error, Toast.LENGTH_LONG).show();
-                    }
-                }
-        );
+        // Then check permissions
+        checkLocationPermission();
+    }
+    private void showLocationServicesDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Location Services Required")
+                .setMessage("Please enable location services to use this feature.")
+                .setPositiveButton("Open Settings", (dialog, which) -> {
+                    Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    startActivity(intent);
+                })
+                .setNegativeButton("Cancel", (dialog, which) -> {
+                    Toast.makeText(this, "Location services are required", Toast.LENGTH_SHORT).show();
+                    finish(); // Close the activity if location is required
+                })
+                .setCancelable(false)
+                .show();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Also check when returning to the activity
+        checkLocationServicesAndPermissions();
+    }
 }

@@ -1,6 +1,8 @@
 package com.example.sssshhift.data;
 
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
@@ -49,4 +51,61 @@ public class ProfileDatabaseHelper extends SQLiteOpenHelper {
             db.execSQL("ALTER TABLE " + TABLE_PROFILES + " ADD COLUMN " + COLUMN_END_TIME + " TEXT");
         }
     }
+
+    // Add these methods to your existing ProfileDatabaseHelper.java class
+
+    public Cursor getProfileByName(String profileName) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.query(
+                TABLE_PROFILES,
+                null,
+                COLUMN_NAME + "=?",
+                new String[]{profileName},
+                null,
+                null,
+                null
+        );
+    }
+
+    public boolean updateProfileActiveStatus(String profileName, boolean isActive) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_IS_ACTIVE, isActive ? 1 : 0);
+
+        int rows = db.update(
+                TABLE_PROFILES,
+                values,
+                COLUMN_NAME + "=?",
+                new String[]{profileName}
+        );
+
+        db.close();
+        return rows > 0;
+    }
+
+    public Cursor getAllActiveProfiles() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.query(
+                TABLE_PROFILES,
+                null,
+                COLUMN_IS_ACTIVE + "=?",
+                new String[]{"1"},
+                null,
+                null,
+                COLUMN_CREATED_AT + " DESC"
+        );
+    }
+
+    public boolean deleteProfile(String profileName) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        int rows = db.delete(
+                TABLE_PROFILES,
+                COLUMN_NAME + "=?",
+                new String[]{profileName}
+        );
+        db.close();
+        return rows > 0;
+    }
+
+
 }

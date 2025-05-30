@@ -4,17 +4,14 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
-import android.animation.ValueAnimator;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.view.animation.BounceInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
@@ -28,7 +25,11 @@ import com.example.sssshhift.R;
 
 public class SplashActivity extends AppCompatActivity {
 
+    private static final String TAG = "SplashActivity";
     private static final int SPLASH_DELAY = 3000; // 3 seconds for enhanced animations
+    private static final String PREFS_NAME = "app_prefs";
+    private static final String KEY_ONBOARDING_COMPLETED = "onboarding_completed";
+
     private SharedPreferences prefs;
 
     // Views
@@ -47,8 +48,21 @@ public class SplashActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 
-        prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        // Initialize SharedPreferences
+        prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         animationHandler = new Handler(Looper.getMainLooper());
+
+        // Debug: Check current onboarding status
+        boolean onboardingCompleted = prefs.getBoolean(KEY_ONBOARDING_COMPLETED, false);
+        Log.d(TAG, "=== SPLASH ACTIVITY DEBUG ===");
+        Log.d(TAG, "Onboarding completed: " + onboardingCompleted);
+
+        // Additional debug: Check all preferences
+        Log.d(TAG, "All SharedPreferences:");
+        for (String key : prefs.getAll().keySet()) {
+            Log.d(TAG, "  " + key + " = " + prefs.getAll().get(key));
+        }
+        Log.d(TAG, "=============================");
 
         initializeViews();
         startEnhancedAnimationSequence();
@@ -73,10 +87,12 @@ public class SplashActivity extends AppCompatActivity {
         backgroundCircle1 = findViewById(R.id.background_circle1);
         backgroundCircle2 = findViewById(R.id.background_circle2);
 
-        // Loading dots
-        dots[0] = findViewById(R.id.dot1);
-        dots[1] = findViewById(R.id.dot2);
-        dots[2] = findViewById(R.id.dot3);
+        // Loading dots - Make sure these exist in your layout
+        if (findViewById(R.id.dot1) != null && findViewById(R.id.dot2) != null && findViewById(R.id.dot3) != null) {
+            dots[0] = findViewById(R.id.dot1);
+            dots[1] = findViewById(R.id.dot2);
+            dots[2] = findViewById(R.id.dot3);
+        }
     }
 
     private void startEnhancedAnimationSequence() {
@@ -103,146 +119,180 @@ public class SplashActivity extends AppCompatActivity {
     }
 
     private void animateBackgroundElements() {
-        // Subtle rotation for background circles
-        ObjectAnimator rotation1 = ObjectAnimator.ofFloat(backgroundCircle1, "rotation", 0f, 360f);
-        rotation1.setDuration(20000);
-        rotation1.setRepeatCount(ObjectAnimator.INFINITE);
-        rotation1.setInterpolator(new AccelerateDecelerateInterpolator());
+        if (backgroundCircle1 != null && backgroundCircle2 != null) {
+            // Subtle rotation for background circles
+            ObjectAnimator rotation1 = ObjectAnimator.ofFloat(backgroundCircle1, "rotation", 0f, 360f);
+            rotation1.setDuration(20000);
+            rotation1.setRepeatCount(ObjectAnimator.INFINITE);
+            rotation1.setInterpolator(new AccelerateDecelerateInterpolator());
 
-        ObjectAnimator rotation2 = ObjectAnimator.ofFloat(backgroundCircle2, "rotation", 360f, 0f);
-        rotation2.setDuration(25000);
-        rotation2.setRepeatCount(ObjectAnimator.INFINITE);
-        rotation2.setInterpolator(new AccelerateDecelerateInterpolator());
+            ObjectAnimator rotation2 = ObjectAnimator.ofFloat(backgroundCircle2, "rotation", 360f, 0f);
+            rotation2.setDuration(25000);
+            rotation2.setRepeatCount(ObjectAnimator.INFINITE);
+            rotation2.setInterpolator(new AccelerateDecelerateInterpolator());
 
-        rotation1.start();
-        rotation2.start();
+            rotation1.start();
+            rotation2.start();
+        }
     }
 
     private void animateLogo() {
-        // Logo entrance animation
-        AnimatorSet logoAnimSet = new AnimatorSet();
+        if (logo != null) {
+            // Logo entrance animation
+            AnimatorSet logoAnimSet = new AnimatorSet();
 
-        ObjectAnimator scaleX = ObjectAnimator.ofFloat(logo, "scaleX", 0f, 1.1f, 1f);
-        ObjectAnimator scaleY = ObjectAnimator.ofFloat(logo, "scaleY", 0f, 1.1f, 1f);
-        ObjectAnimator alpha = ObjectAnimator.ofFloat(logo, "alpha", 0f, 1f);
-        ObjectAnimator rotation = ObjectAnimator.ofFloat(logo, "rotation", -90f, 0f);
+            ObjectAnimator scaleX = ObjectAnimator.ofFloat(logo, "scaleX", 0f, 1.1f, 1f);
+            ObjectAnimator scaleY = ObjectAnimator.ofFloat(logo, "scaleY", 0f, 1.1f, 1f);
+            ObjectAnimator alpha = ObjectAnimator.ofFloat(logo, "alpha", 0f, 1f);
+            ObjectAnimator rotation = ObjectAnimator.ofFloat(logo, "rotation", -90f, 0f);
 
-        logoAnimSet.playTogether(scaleX, scaleY, alpha, rotation);
-        logoAnimSet.setDuration(700);
-        logoAnimSet.setInterpolator(new OvershootInterpolator(1.1f));
+            logoAnimSet.playTogether(scaleX, scaleY, alpha, rotation);
+            logoAnimSet.setDuration(700);
+            logoAnimSet.setInterpolator(new OvershootInterpolator(1.1f));
 
-        // Ring animation
-        logoAnimSet.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                animateLogoRing();
-            }
-        });
+            // Ring animation
+            logoAnimSet.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    animateLogoRing();
+                }
+            });
 
-        logoAnimSet.start();
+            logoAnimSet.start();
+        }
     }
 
     private void animateLogoRing() {
-        AnimatorSet ringAnimSet = new AnimatorSet();
+        if (logoRing != null) {
+            AnimatorSet ringAnimSet = new AnimatorSet();
 
-        ObjectAnimator alpha = ObjectAnimator.ofFloat(logoRing, "alpha", 0f, 0.6f, 0f);
-        ObjectAnimator scaleX = ObjectAnimator.ofFloat(logoRing, "scaleX", 1f, 1.2f);
-        ObjectAnimator scaleY = ObjectAnimator.ofFloat(logoRing, "scaleY", 1f, 1.2f);
+            ObjectAnimator alpha = ObjectAnimator.ofFloat(logoRing, "alpha", 0f, 0.6f, 0f);
+            ObjectAnimator scaleX = ObjectAnimator.ofFloat(logoRing, "scaleX", 1f, 1.2f);
+            ObjectAnimator scaleY = ObjectAnimator.ofFloat(logoRing, "scaleY", 1f, 1.2f);
 
-        ringAnimSet.playTogether(alpha, scaleX, scaleY);
-        ringAnimSet.setDuration(800);
-        ringAnimSet.setInterpolator(new DecelerateInterpolator());
-        ringAnimSet.start();
+            ringAnimSet.playTogether(alpha, scaleX, scaleY);
+            ringAnimSet.setDuration(800);
+            ringAnimSet.setInterpolator(new DecelerateInterpolator());
+            ringAnimSet.start();
+        }
     }
 
     private void animateTitle() {
-        // Enhanced title animation with scale and fade
-        AnimatorSet titleAnimSet = new AnimatorSet();
+        if (title != null) {
+            // Enhanced title animation with scale and fade
+            AnimatorSet titleAnimSet = new AnimatorSet();
 
-        ObjectAnimator alpha = ObjectAnimator.ofFloat(title, "alpha", 0f, 1f);
-        ObjectAnimator scaleX = ObjectAnimator.ofFloat(title, "scaleX", 0.8f, 1.05f, 1f);
-        ObjectAnimator scaleY = ObjectAnimator.ofFloat(title, "scaleY", 0.8f, 1.05f, 1f);
-        ObjectAnimator translationY = ObjectAnimator.ofFloat(title, "translationY", 30f, 0f);
+            ObjectAnimator alpha = ObjectAnimator.ofFloat(title, "alpha", 0f, 1f);
+            ObjectAnimator scaleX = ObjectAnimator.ofFloat(title, "scaleX", 0.8f, 1.05f, 1f);
+            ObjectAnimator scaleY = ObjectAnimator.ofFloat(title, "scaleY", 0.8f, 1.05f, 1f);
+            ObjectAnimator translationY = ObjectAnimator.ofFloat(title, "translationY", 30f, 0f);
 
-        titleAnimSet.playTogether(alpha, scaleX, scaleY, translationY);
-        titleAnimSet.setDuration(600);
-        titleAnimSet.setInterpolator(new OvershootInterpolator(0.8f));
-        titleAnimSet.start();
+            titleAnimSet.playTogether(alpha, scaleX, scaleY, translationY);
+            titleAnimSet.setDuration(600);
+            titleAnimSet.setInterpolator(new OvershootInterpolator(0.8f));
+            titleAnimSet.start();
+        }
     }
 
     private void animateTagline() {
-        // Elegant tagline animation
-        AnimatorSet taglineAnimSet = new AnimatorSet();
+        if (tagline != null) {
+            // Elegant tagline animation
+            AnimatorSet taglineAnimSet = new AnimatorSet();
 
-        ObjectAnimator alpha = ObjectAnimator.ofFloat(tagline, "alpha", 0f, 1f);
-        ObjectAnimator translationY = ObjectAnimator.ofFloat(tagline, "translationY", 20f, 0f);
-        ObjectAnimator scaleX = ObjectAnimator.ofFloat(tagline, "scaleX", 0.9f, 1f);
+            ObjectAnimator alpha = ObjectAnimator.ofFloat(tagline, "alpha", 0f, 1f);
+            ObjectAnimator translationY = ObjectAnimator.ofFloat(tagline, "translationY", 20f, 0f);
+            ObjectAnimator scaleX = ObjectAnimator.ofFloat(tagline, "scaleX", 0.9f, 1f);
 
-        taglineAnimSet.playTogether(alpha, translationY, scaleX);
-        taglineAnimSet.setDuration(500);
-        taglineAnimSet.setInterpolator(new DecelerateInterpolator());
-        taglineAnimSet.start();
+            taglineAnimSet.playTogether(alpha, translationY, scaleX);
+            taglineAnimSet.setDuration(500);
+            taglineAnimSet.setInterpolator(new DecelerateInterpolator());
+            taglineAnimSet.start();
+        }
     }
 
     private void animateFeatureHighlight() {
-        // Feature highlight animation
-        AnimatorSet featureAnimSet = new AnimatorSet();
+        if (featureHighlight != null) {
+            // Feature highlight animation
+            AnimatorSet featureAnimSet = new AnimatorSet();
 
-        ObjectAnimator alpha = ObjectAnimator.ofFloat(featureHighlight, "alpha", 0f, 1f);
-        ObjectAnimator translationY = ObjectAnimator.ofFloat(featureHighlight, "translationY", 15f, 0f);
+            ObjectAnimator alpha = ObjectAnimator.ofFloat(featureHighlight, "alpha", 0f, 1f);
+            ObjectAnimator translationY = ObjectAnimator.ofFloat(featureHighlight, "translationY", 15f, 0f);
 
-        featureAnimSet.playTogether(alpha, translationY);
-        featureAnimSet.setDuration(400);
-        featureAnimSet.setInterpolator(new DecelerateInterpolator());
-        featureAnimSet.start();
+            featureAnimSet.playTogether(alpha, translationY);
+            featureAnimSet.setDuration(400);
+            featureAnimSet.setInterpolator(new DecelerateInterpolator());
+            featureAnimSet.start();
+        }
     }
 
     private void animateLoadingElements() {
         // Loading text animation
-        ObjectAnimator loadingAlpha = ObjectAnimator.ofFloat(loadingText, "alpha", 0f, 1f);
-        loadingAlpha.setDuration(300);
-        loadingAlpha.start();
+        if (loadingText != null) {
+            ObjectAnimator loadingAlpha = ObjectAnimator.ofFloat(loadingText, "alpha", 0f, 1f);
+            loadingAlpha.setDuration(300);
+            loadingAlpha.start();
+        }
 
         // Loading dots animation
-        ObjectAnimator dotsAlpha = ObjectAnimator.ofFloat(loadingDots, "alpha", 0f, 1f);
-        dotsAlpha.setDuration(300);
-        dotsAlpha.start();
+        if (loadingDots != null) {
+            ObjectAnimator dotsAlpha = ObjectAnimator.ofFloat(loadingDots, "alpha", 0f, 1f);
+            dotsAlpha.setDuration(300);
+            dotsAlpha.start();
 
-        // Animated dots pulsing effect
-        animationHandler.postDelayed(this::startDotsPulsing, 400);
+            // Animated dots pulsing effect
+            animationHandler.postDelayed(this::startDotsPulsing, 400);
+        }
     }
 
     private void startDotsPulsing() {
         for (int i = 0; i < dots.length; i++) {
             final View dot = dots[i];
-            final int delay = i * 200;
+            if (dot != null) {
+                final int delay = i * 200;
 
-            animationHandler.postDelayed(() -> {
-                ObjectAnimator pulse = ObjectAnimator.ofFloat(dot, "alpha", 1f, 0.3f);
-                pulse.setDuration(600);
-                pulse.setRepeatCount(ObjectAnimator.INFINITE);
-                pulse.setRepeatMode(ObjectAnimator.REVERSE);
-                pulse.setInterpolator(new AccelerateDecelerateInterpolator());
-                pulse.start();
-            }, delay);
+                animationHandler.postDelayed(() -> {
+                    ObjectAnimator pulse = ObjectAnimator.ofFloat(dot, "alpha", 1f, 0.3f);
+                    pulse.setDuration(600);
+                    pulse.setRepeatCount(ObjectAnimator.INFINITE);
+                    pulse.setRepeatMode(ObjectAnimator.REVERSE);
+                    pulse.setInterpolator(new AccelerateDecelerateInterpolator());
+                    pulse.start();
+                }, delay);
+            }
         }
     }
 
     private void animateVersionText() {
-        ObjectAnimator alpha = ObjectAnimator.ofFloat(versionText, "alpha", 0f, 1f);
-        alpha.setDuration(300);
-        alpha.start();
+        if (versionText != null) {
+            ObjectAnimator alpha = ObjectAnimator.ofFloat(versionText, "alpha", 0f, 1f);
+            alpha.setDuration(300);
+            alpha.start();
+        }
     }
 
     private void navigateToNextScreen() {
-        Intent intent;
-        boolean onboardingCompleted = prefs.getBoolean("onboarding_completed", false);
+        // Get fresh SharedPreferences instance to avoid caching issues
+        SharedPreferences freshPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean onboardingCompleted = freshPrefs.getBoolean(KEY_ONBOARDING_COMPLETED, false);
 
-        if (onboardingCompleted) {
-            intent = new Intent(SplashActivity.this, MainActivity.class);
-        } else {
+        Log.d(TAG, "=== NAVIGATION DEBUG ===");
+        Log.d(TAG, "Navigating... Onboarding completed: " + onboardingCompleted);
+        Log.d(TAG, "Fresh check - Onboarding completed: " + onboardingCompleted);
+
+        Intent intent;
+
+        if (!onboardingCompleted) {
+            // First time user - show onboarding
+            Log.d(TAG, "Starting OnboardingActivity");
             intent = new Intent(SplashActivity.this, OnboardingActivity.class);
+        } else {
+            // Returning user - go directly to main app
+            Log.d(TAG, "Starting MainActivity");
+            intent = new Intent(SplashActivity.this, MainActivity.class);
         }
+
+        Log.d(TAG, "Starting activity: " + intent.getComponent().getClassName());
+        Log.d(TAG, "========================");
 
         startActivity(intent);
         finish();
@@ -256,5 +306,19 @@ public class SplashActivity extends AppCompatActivity {
         if (animationHandler != null) {
             animationHandler.removeCallbacksAndMessages(null);
         }
+    }
+
+    // Debug method - you can call this to reset onboarding for testing
+    public void resetOnboarding() {
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.remove(KEY_ONBOARDING_COMPLETED);
+        editor.apply();
+        Log.d(TAG, "Onboarding reset for testing");
+    }
+
+    // Method to manually test the flag
+    public void testOnboardingFlag() {
+        boolean flag = prefs.getBoolean(KEY_ONBOARDING_COMPLETED, false);
+        Log.d(TAG, "TEST: Onboarding completed flag = " + flag);
     }
 }

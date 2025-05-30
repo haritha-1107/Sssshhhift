@@ -79,24 +79,17 @@ public class GeofenceManager {
     public void addProfileGeofence(String profileId, String locationName, double latitude, double longitude,
                                    float radius, GeofenceManagerCallback callback) {
 
+        // Add location services check FIRST
+        if (!LocationUtils.isLocationEnabled(context)) {
+            String error = "Location services are disabled. Please enable them in device settings.";
+            Log.e(TAG, error);
+            if (callback != null) callback.onError(error);
+            return;
+        }
+
         // Validate input
         if (!LocationUtils.areCoordinatesValid(latitude, longitude)) {
             String error = "Invalid coordinates: " + latitude + ", " + longitude;
-            Log.e(TAG, error);
-            if (callback != null) callback.onError(error);
-            return;
-        }
-
-        if (radius <= 0) {
-            String error = "Invalid radius: " + radius;
-            Log.e(TAG, error);
-            if (callback != null) callback.onError(error);
-            return;
-        }
-
-        // Check location permissions
-        if (!LocationUtils.hasLocationPermissions(context)) {
-            String error = "Location permissions not granted";
             Log.e(TAG, error);
             if (callback != null) callback.onError(error);
             return;
@@ -283,4 +276,7 @@ public class GeofenceManager {
     public int getActiveGeofenceCount() {
         return activeGeofences.size();
     }
+
+
+
 }

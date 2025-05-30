@@ -135,7 +135,7 @@ public class ProfilesFragment extends Fragment implements ProfileAdapter.OnProfi
                     Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
                 } else {
                     // Cancel the scheduled profile
-                    ProfileUtils.cancelProfile(requireContext(), profile.getName());
+                    ProfileUtils.cancelProfileAlarms(requireContext(), profile.getName());
 
                     Toast.makeText(getContext(),
                             "Profile '" + profile.getName() + "' disabled",
@@ -171,7 +171,7 @@ public class ProfilesFragment extends Fragment implements ProfileAdapter.OnProfi
     public void onProfileDelete(Profile profile) {
         try {
             // First cancel any scheduled alarms
-            ProfileUtils.cancelProfile(requireContext(), profile.getName());
+            ProfileUtils.cancelProfileAlarms(requireContext(), profile.getName());
 
             // Then delete from database
             String selection = "_id = ?";

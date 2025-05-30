@@ -566,7 +566,7 @@ public class EditProfileActivity extends AppCompatActivity implements LocationLi
                 // Update scheduling if it's time-based and the profile is active
                 if (isTimeBased && currentProfile.isActive()) {
                     // Cancel old scheduling
-                    ProfileUtils.cancelProfile(this, originalProfileName);
+                    ProfileUtils.cancelProfileAlarms(this, originalProfileName);
 
                     // Schedule with new settings
                     ProfileUtils.scheduleProfile(this, profileName, true, selectedTime, selectedEndTime);

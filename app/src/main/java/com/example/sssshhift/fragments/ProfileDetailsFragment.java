@@ -260,7 +260,7 @@ public class ProfileDetailsFragment extends Fragment {
                 Toast.makeText(getContext(), "Profile activated", Toast.LENGTH_SHORT).show();
             } else {
                 // Cancel the scheduled profile
-                ProfileUtils.cancelProfile(requireContext(), profile.getName());
+                ProfileUtils.cancelProfileAlarms(requireContext(), profile.getName());
                 Toast.makeText(getContext(), "Profile deactivated", Toast.LENGTH_SHORT).show();
             }
 
