@@ -51,6 +51,12 @@
     <!-- Alarm permissions -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 
     <!-- Audio permissions -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
@@ -193,6 +199,59 @@
             android:enabled="true"
             android:exported="false" />
 
+        <!-- Timer and Location Services -->
+        <service
+            android:name=".services.timer.TimerService"
+            android:enabled="true"
+            android:exported="false" />
+        <service
+            android:name=".services.location.LocationService"
+            android:enabled="true"
+            android:exported="false" />
+
+        <!-- Timer and Location Receivers -->
+        <receiver
+            android:name=".services.timer.TimerReceiver"
+            android:enabled="true"
+            android:exported="false" />
+        <receiver
+            android:name=".services.location.LocationReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <!-- Timer Components -->
+        <activity
+            android:name=".timer.TimerProfileActivity"
+            android:exported="false"
+            android:label="Timer Profile"
+            android:launchMode="singleTop"
+            android:parentActivityName=".MainActivity" />
+
+        <receiver
+            android:name=".timer.TimerAlarmReceiver"
+            android:enabled="true"
+            android:exported="false"
+            android:directBootAware="true"
+            android:permission="android.permission.MODIFY_AUDIO_SETTINGS">
+            <intent-filter>
+                <action android:name="com.example.sssshhift.START_TIMER" />
+                <action android:name="com.example.sssshhift.END_TIMER" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".timer.TimerBootReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:directBootAware="true"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"

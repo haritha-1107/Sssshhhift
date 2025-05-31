@@ -1,6 +1,7 @@
 package com.example.sssshhift.activities;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
@@ -85,6 +86,7 @@ public class LocationPickerActivity extends AppCompatActivity implements OnMapRe
         }
     }
 
+    @SuppressLint("WrongViewCast")
     private void initViews() {
         searchEditText = findViewById(R.id.search_edit_text);
         searchResultsRecycler = findViewById(R.id.search_results_recycler);
