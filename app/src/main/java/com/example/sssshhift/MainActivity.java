@@ -13,6 +13,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -34,6 +35,9 @@ import com.example.sssshhift.fragments.HomeFragment;
 import com.example.sssshhift.fragments.SettingsFragment;
 import com.example.sssshhift.utils.PermissionUtils;
 import com.example.sssshhift.utils.LocationUtils;
+import com.example.sssshhift.features.smartauto.SmartAutoSettingsFragment;
+import com.example.sssshhift.features.smartauto.SmartAutoWorker;
+import androidx.preference.PreferenceManager;
 
 public class MainActivity extends AppCompatActivity implements BottomNavigationView.OnNavigationItemSelectedListener {
 
@@ -70,6 +74,7 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         initViews();
         setupFragments();
         setupFab();
+        setSupportActionBar(findViewById(R.id.toolbar));
 
         // Set default fragment
         if (savedInstanceState == null) {
@@ -86,7 +91,29 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
             // All permissions already granted, setup services
             setupServicesIfReady();
         }
+
+        setupSmartAutoMode();
     }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.smartAutoSettingsFragment) {
+            // Navigate to SmartAutoSettingsFragment
+            getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, new SmartAutoSettingsFragment())
+                .addToBackStack(null)
+                .commit();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
     private void startPermissionFlow() {
         // Start with a welcome dialog explaining permissions
         showLocationServicesRequiredDialog();
@@ -122,10 +149,6 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
 
         return hasNotificationPolicy && hasLocation && hasCalendar;
     }
-
-
-
-
 
     private void checkAllPermissions() {
         // Check notification policy permission first
@@ -313,9 +336,6 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         );
     }
 
-
-
-
     private void handleLocationPermissionResult(int[] grantResults) {
         boolean allGranted = true;
         for (int result : grantResults) {
@@ -360,8 +380,6 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         // Complete setup regardless of result
         completePermissionSetup();
     }
-
-
 
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
@@ -476,8 +494,6 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         return CalendarMonitorService.isCalendarModeActive(this);
     }
 
-
-
     private void checkLocationRequirements() {
         if (!LocationUtils.isLocationEnabled(this)) {
             showLocationServicesRequiredDialog();
@@ -562,6 +578,17 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
                     Toast.makeText(this, "Background location access denied. Some features may be limited.", Toast.LENGTH_LONG).show();
                 }
                 break;
+        }
+    }
+
+    private void setupSmartAutoMode() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean isEnabled = prefs.getBoolean("auto_mode_enabled", false);
+        
+        if (isEnabled && ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR)
+                == PackageManager.PERMISSION_GRANTED) {
+            Log.d(TAG, "Starting Smart Auto Mode worker");
+            SmartAutoWorker.scheduleWork(this);
         }
     }
 }

@@ -4,12 +4,17 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.location.LocationManager;
 import android.os.Build;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import java.util.ArrayList;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.tasks.Task;
 import java.util.List;
+import java.util.ArrayList;
 
 public class LocationUtils {
 
@@ -169,5 +174,40 @@ public class LocationUtils {
      */
     public static boolean areCoordinatesValid(double latitude, double longitude) {
         return latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
+    }
+
+    public static Location getLastKnownLocation(Context context) {
+        if (!hasLocationPermissions(context)) {
+            return null;
+        }
+
+        try {
+            FusedLocationProviderClient fusedLocationClient = LocationServices.getFusedLocationProviderClient(context);
+            Task<Location> task = fusedLocationClient.getLastLocation();
+            
+            // Wait for the result synchronously (not recommended for production)
+            while (!task.isComplete()) {
+                Thread.sleep(100);
+            }
+            
+            return task.getResult();
+        } catch (SecurityException | InterruptedException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static float calculateDistance(LatLng point1, LatLng point2) {
+        float[] results = new float[1];
+        Location.distanceBetween(
+            point1.latitude, point1.longitude,
+            point2.latitude, point2.longitude,
+            results
+        );
+        return results[0];
+    }
+
+    public static boolean isInGeofence(LatLng currentLocation, LatLng center, float radiusMeters) {
+        return calculateDistance(currentLocation, center) <= radiusMeters;
     }
 }

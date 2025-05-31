@@ -1,5 +1,6 @@
 package com.example.sssshhift.location;
 
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -7,10 +8,12 @@ import android.location.Location;
 import android.media.AudioManager;
 import android.os.Build;
 import android.util.Log;
+import androidx.core.app.NotificationCompat;
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
+import com.example.sssshhift.utils.LocationUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -66,7 +69,8 @@ public class LocationProfileManager {
                 .addGeofences(geofencingRequest, LocationReceiver.getPendingIntent(context))
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "Geofence registered successfully for profile: " + name);
-                    // If this is a current location profile, change ringer mode immediately
+                    
+                    // Check if user is already in the geofence
                     Location currentLocation = LocationUtils.getLastKnownLocation(context);
                     if (currentLocation != null) {
                         float[] results = new float[1];
@@ -75,12 +79,25 @@ public class LocationProfileManager {
                             location.latitude, location.longitude,
                             results
                         );
+                        
+                        // If within radius, trigger the profile immediately
                         if (results[0] <= radiusMeters) {
+                            Log.d(TAG, "User is already in geofence area. Triggering profile immediately.");
                             changeRingerMode(ringerMode, name);
+                            showNotification(context, name, ringerMode, true);
                         }
                     }
                 })
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to register geofence: " + e.getMessage()));
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to register geofence: " + e.getMessage());
+                    // Clean up saved preferences if geofence registration fails
+                    editor.remove(profileId + "_name");
+                    editor.remove(profileId + "_lat");
+                    editor.remove(profileId + "_lng");
+                    editor.remove(profileId + "_mode");
+                    editor.remove(profileId + "_radius");
+                    editor.apply();
+                });
 
             return profileId;
         } catch (Exception e) {
@@ -146,7 +163,7 @@ public class LocationProfileManager {
                 return false;
             }
         }
-        return LocationUtils.checkLocationPermissions(context);
+        return LocationUtils.hasLocationPermissions(context);
     }
 
     public List<LocationProfile> getAllProfiles() {
@@ -170,5 +187,26 @@ public class LocationProfileManager {
             Log.e(TAG, "Error loading profiles: " + e.getMessage());
         }
         return profiles;
+    }
+
+    private void showNotification(Context context, String profileName, int ringerMode, boolean isEntering) {
+        String title = isEntering ? "Profile Activated" : "Profile Deactivated";
+        String message = isEntering ? 
+            "Entered location zone for " + profileName :
+            "Left location zone for " + profileName;
+
+        NotificationManager notificationManager = 
+            (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        
+        if (notificationManager != null) {
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "location_profiles")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true);
+
+            notificationManager.notify(profileName.hashCode(), builder.build());
+        }
     }
 } 

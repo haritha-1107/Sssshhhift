@@ -87,4 +87,14 @@ public class Profile {
     public boolean hasDuration() {
         return endTime != null && !endTime.isEmpty();
     }
+
+    // Location-related methods
+    public String getLocation() {
+        return "location".equals(triggerType) ? triggerValue : null;
+    }
+
+    public float getRadius() {
+        // Default radius in meters if not specified
+        return 100f;
+    }
 }

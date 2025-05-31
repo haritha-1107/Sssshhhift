@@ -10,6 +10,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.example.sssshhift.receivers.ProfileTimerReceiver;
+import com.example.sssshhift.models.Profile;
 
 import java.util.Calendar;
 
@@ -167,5 +168,79 @@ public class ProfileUtils {
     // Method to reschedule daily recurring alarms
     public static void rescheduleProfileForNextDay(Context context, String profileName, String time, boolean isStartTime) {
         scheduleProfileAlarm(context, profileName, time, isStartTime);
+    }
+
+    public static void scheduleProfile(Context context, Profile profile) {
+        try {
+            if (profile.getLocation() != null && !profile.getLocation().isEmpty()) {
+                scheduleLocationBasedAlarm(context, profile);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error scheduling profile: " + profile.getName(), e);
+            Toast.makeText(context, "Error scheduling profile: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private static void scheduleLocationBasedAlarm(Context context, Profile profile) {
+        try {
+            // Parse location coordinates
+            String[] coordinates = profile.getLocation().split(",");
+            if (coordinates.length == 2) {
+                double latitude = Double.parseDouble(coordinates[0].trim());
+                double longitude = Double.parseDouble(coordinates[1].trim());
+                
+                // Create intent for the alarm
+                Intent intent = new Intent(context, ProfileTimerReceiver.class);
+                intent.putExtra("profile_id", profile.getId());
+                intent.putExtra("profile_name", profile.getName());
+                intent.putExtra("latitude", latitude);
+                intent.putExtra("longitude", longitude);
+                intent.putExtra("radius", profile.getRadius());
+                
+                // Set up the PendingIntent with a unique request code
+                int requestCode = (int) (profile.getId() % Integer.MAX_VALUE); // Safe conversion to int
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    requestCode,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                );
+
+                // Get the AlarmManager
+                AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+                if (alarmManager != null) {
+                    // Schedule the alarm
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        if (alarmManager.canScheduleExactAlarms()) {
+                            alarmManager.setExactAndAllowWhileIdle(
+                                AlarmManager.RTC_WAKEUP,
+                                System.currentTimeMillis(),
+                                pendingIntent
+                            );
+                        } else {
+                            alarmManager.setAndAllowWhileIdle(
+                                AlarmManager.RTC_WAKEUP,
+                                System.currentTimeMillis(),
+                                pendingIntent
+                            );
+                        }
+                    } else {
+                        alarmManager.setExactAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            System.currentTimeMillis(),
+                            pendingIntent
+                        );
+                    }
+                    Log.d(TAG, "Location-based alarm scheduled for profile: " + profile.getName() + 
+                              " at location: " + latitude + "," + longitude);
+                }
+            } else {
+                Log.e(TAG, "Invalid location format: " + profile.getLocation());
+            }
+        } catch (NumberFormatException e) {
+            Log.e(TAG, "Error parsing coordinates for profile: " + profile.getName(), e);
+        } catch (Exception e) {
+            Log.e(TAG, "Error scheduling profile: " + profile.getName(), e);
+        }
     }
 }

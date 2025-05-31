@@ -17,21 +17,15 @@ import java.util.List;
 
 public class LocationReceiver extends BroadcastReceiver {
     private static final String TAG = "LocationReceiver";
-    private static final String CHANNEL_ID = "location_notification_channel";
-    private static final int NOTIFICATION_ID = 2001;
-    private static final String ACTION_PROCESS_GEOFENCE = "com.example.sssshhift.ACTION_PROCESS_GEOFENCE";
+    private static final String PREFS_NAME = "location_profiles";
+    private static final String CHANNEL_ID = "location_profiles";
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent == null || intent.getAction() == null) {
-            return;
-        }
-
-        if (!ACTION_PROCESS_GEOFENCE.equals(intent.getAction())) {
-            return;
-        }
-
+        createNotificationChannel(context);
+        
         GeofencingEvent geofencingEvent = GeofencingEvent.fromIntent(intent);
+        
         if (geofencingEvent == null) {
             Log.e(TAG, "Null GeofencingEvent received");
             return;
@@ -59,88 +53,70 @@ public class LocationReceiver extends BroadcastReceiver {
         }
     }
 
-    private void handleGeofenceTransition(Context context, String profileId, int transition) {
-        SharedPreferences prefs = context.getSharedPreferences("location_profiles", Context.MODE_PRIVATE);
-        
-        String name = prefs.getString(profileId + "_name", "");
-        int mode = prefs.getInt(profileId + "_mode", AudioManager.RINGER_MODE_NORMAL);
-
-        if (transition == Geofence.GEOFENCE_TRANSITION_ENTER) {
-            // Change to profile's ringer mode when entering
-            LocationProfileManager manager = new LocationProfileManager(context);
-            if (manager.changeRingerMode(mode, name)) {
-                showNotification(context, name, mode, true);
-            }
-        } else if (transition == Geofence.GEOFENCE_TRANSITION_EXIT) {
-            // Change back to normal mode when exiting
-            LocationProfileManager manager = new LocationProfileManager(context);
-            if (manager.changeRingerMode(AudioManager.RINGER_MODE_NORMAL, name)) {
-                showNotification(context, name, AudioManager.RINGER_MODE_NORMAL, false);
-            }
-        }
-    }
-
-    private void showNotification(Context context, String profileName, int ringerMode, boolean isEntering) {
-        NotificationManager notificationManager = 
-            (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        
-        if (notificationManager == null) return;
-
-        createNotificationChannel(context);
-
-        String title = isEntering ? "Entered Location Profile" : "Left Location Profile";
-        String message = String.format("%s - Phone is now in %s mode", 
-            profileName, getRingerModeName(ringerMode));
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_map)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true);
-
-        notificationManager.notify(NOTIFICATION_ID, builder.build());
-    }
-
-    private String getRingerModeName(int ringerMode) {
-        switch (ringerMode) {
-            case AudioManager.RINGER_MODE_SILENT:
-                return "Silent";
-            case AudioManager.RINGER_MODE_VIBRATE:
-                return "Vibrate";
-            case AudioManager.RINGER_MODE_NORMAL:
-                return "Normal";
-            default:
-                return "Unknown";
-        }
-    }
-
     private void createNotificationChannel(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
-                "Location Profile Notifications",
-                NotificationManager.IMPORTANCE_HIGH
+                "Location Profiles",
+                NotificationManager.IMPORTANCE_DEFAULT
             );
             channel.setDescription("Notifications for location-based profile changes");
-            
-            NotificationManager notificationManager = 
-                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+            NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
             if (notificationManager != null) {
                 notificationManager.createNotificationChannel(channel);
             }
         }
     }
 
-    public static PendingIntent getPendingIntent(Context context) {
-        Intent intent = new Intent(context, LocationReceiver.class);
-        intent.setAction(ACTION_PROCESS_GEOFENCE);
+    private void handleGeofenceTransition(Context context, String profileId, int transition) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         
-        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            flags |= PendingIntent.FLAG_IMMUTABLE;
+        if (audioManager == null) {
+            Log.e(TAG, "AudioManager is null");
+            return;
         }
+
+        String name = prefs.getString(profileId + "_name", "Unknown Profile");
+        int mode = prefs.getInt(profileId + "_mode", AudioManager.RINGER_MODE_NORMAL);
+
+        if (transition == Geofence.GEOFENCE_TRANSITION_ENTER) {
+            // Change to profile's ringer mode when entering
+            Log.d(TAG, "Entering geofence for profile: " + name);
+            audioManager.setRingerMode(mode);
+            showNotification(context, name, "Profile Activated", "Entered location zone");
+        } else if (transition == Geofence.GEOFENCE_TRANSITION_EXIT) {
+            // Change back to normal mode when exiting
+            Log.d(TAG, "Exiting geofence for profile: " + name);
+            audioManager.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
+            showNotification(context, name, "Profile Deactivated", "Left location zone");
+        }
+    }
+
+    private void showNotification(Context context, String profileName, String title, String message) {
+        NotificationManager notificationManager = 
+            (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         
-        return PendingIntent.getBroadcast(context, 0, intent, flags);
+        if (notificationManager != null) {
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(title)
+                .setContentText(message + " for " + profileName)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true);
+
+            notificationManager.notify(profileName.hashCode(), builder.build());
+        }
+    }
+
+    public static android.app.PendingIntent getPendingIntent(Context context) {
+        Intent intent = new Intent(context, LocationReceiver.class);
+        return android.app.PendingIntent.getBroadcast(
+            context,
+            0,
+            intent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_MUTABLE
+        );
     }
 } 

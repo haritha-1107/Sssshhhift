@@ -268,6 +268,7 @@ public class AddProfileActivity extends AppCompatActivity implements LocationLis
 
     private void showLocationPicker() {
         Intent intent = new Intent(this, LocationPickerActivity.class);
+        intent.putExtra("auto_confirm", true); // Enable auto-confirmation for current location
         startActivityForResult(intent, LOCATION_PICKER_REQUEST_CODE);
     }
 
@@ -517,13 +518,35 @@ public class AddProfileActivity extends AppCompatActivity implements LocationLis
         if (requestCode == LOCATION_PICKER_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
             selectedLatitude = data.getDoubleExtra("latitude", 0.0);
             selectedLongitude = data.getDoubleExtra("longitude", 0.0);
-            String locationName = data.getStringExtra("locationName");
+            float radius = data.getFloatExtra("radius", 100f);
+            boolean isCurrentLocation = data.getBooleanExtra("isCurrentLocation", false);
 
             isLocationSelected = true;
-            selectedLocationText.setText("Selected: " + locationName);
+            
+            // Get location name from coordinates
+            try {
+                Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+                List<Address> addresses = geocoder.getFromLocation(selectedLatitude, selectedLongitude, 1);
+                String locationName = "Unknown Location";
+                if (addresses != null && !addresses.isEmpty()) {
+                    Address address = addresses.get(0);
+                    if (address.getMaxAddressLineIndex() >= 0) {
+                        locationName = address.getAddressLine(0);
+                    }
+                }
+                selectedLocationText.setText("Selected: " + locationName);
+            } catch (IOException e) {
+                selectedLocationText.setText(String.format("Selected: %.6f, %.6f", selectedLatitude, selectedLongitude));
+            }
+            
             selectedLocationText.setVisibility(View.VISIBLE);
 
-            Toast.makeText(this, "Location selected successfully", Toast.LENGTH_SHORT).show();
+            // If this is current location, immediately apply the profile
+            if (isCurrentLocation) {
+                saveProfile();
+            } else {
+                Toast.makeText(this, "Location selected successfully", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_add_profile"
+        android:icon="@drawable/ic_add"
+        android:title="@string/add_profile"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/smartAutoSettingsFragment"
+        android:icon="@drawable/ic_calendar_auto"
+        android:title="@string/smart_auto_mode_title"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_settings"
+        android:icon="@drawable/ic_settings"
+        android:title="@string/settings_title"
+        app:showAsAction="never" />
+
+    <!-- ... existing menu items ... -->
+
+</menu> 
