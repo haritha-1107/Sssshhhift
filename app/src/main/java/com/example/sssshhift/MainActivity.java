@@ -34,7 +34,7 @@ import com.example.sssshhift.R;
 import com.example.sssshhift.fragments.HomeFragment;
 import com.example.sssshhift.fragments.SettingsFragment;
 import com.example.sssshhift.utils.PermissionUtils;
-import com.example.sssshhift.utils.LocationUtils;
+import com.example.sssshhift.location.LocationUtils;
 import com.example.sssshhift.features.smartauto.SmartAutoSettingsFragment;
 import com.example.sssshhift.features.smartauto.SmartAutoWorker;
 import androidx.preference.PreferenceManager;

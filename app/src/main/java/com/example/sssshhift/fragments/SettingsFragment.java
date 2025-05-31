@@ -23,7 +23,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import com.example.sssshhift.MainActivity;
 import com.example.sssshhift.R;
-import com.example.sssshhift.utils.LocationUtils;
+import com.example.sssshhift.location.LocationUtils;
 import com.example.sssshhift.utils.PermissionUtils;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.switchmaterial.SwitchMaterial;

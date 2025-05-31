@@ -1,5 +1,6 @@
 package com.example.sssshhift.location;
 
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
@@ -13,7 +14,7 @@ import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
-import com.example.sssshhift.utils.LocationUtils;
+import com.example.sssshhift.location.LocationUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +36,7 @@ public class LocationProfileManager {
         this.notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
     }
 
+    @SuppressLint("MissingPermission")
     public String createLocationProfile(String name, LatLng location, int ringerMode, float radiusMeters) {
         if (!checkPermissions()) {
             Log.e(TAG, "Required permissions not granted");

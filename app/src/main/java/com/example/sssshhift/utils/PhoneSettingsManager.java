@@ -162,4 +162,86 @@ public class PhoneSettingsManager {
         }
         return "normal";
     }
+
+    public static void applyActions(Context context, String actions) {
+        Log.d(TAG, "Applying profile actions: " + actions);
+
+        if (actions == null || actions.isEmpty()) {
+            return;
+        }
+
+        String[] actionArray = actions.split(",");
+
+        for (String action : actionArray) {
+            action = action.trim();
+
+            switch (action) {
+                case "wifi":
+                    // Note: Direct Wi-Fi control requires system-level permissions
+                    // Show notification instead for user to manually toggle
+                    NotificationUtils.showWifiToggleNotification(context, true);
+                    break;
+
+                case "bluetooth":
+                    toggleBluetooth(context, true);
+                    break;
+
+                case "data":
+                    // Mobile data toggle requires system permissions
+                    // Show notification for manual toggle
+                    Log.d(TAG, "Mobile data toggle requested");
+                    break;
+
+                case "dnd":
+                    enableDoNotDisturb(context);
+                    break;
+
+                default:
+                    Log.w(TAG, "Unknown action: " + action);
+                    break;
+            }
+        }
+    }
+
+    public static void deactivateProfile(Context context, String actions) {
+        Log.d(TAG, "Deactivating profile actions");
+
+        // Reset ringer mode to normal
+        setRingerMode(context, "normal");
+
+        // If there were no actions, we're done
+        if (actions == null || actions.isEmpty()) {
+            return;
+        }
+
+        // Reverse each action
+        String[] actionArray = actions.split(",");
+        for (String action : actionArray) {
+            action = action.trim();
+
+            switch (action) {
+                case "wifi":
+                    // Show notification to manually disable WiFi
+                    NotificationUtils.showWifiToggleNotification(context, false);
+                    break;
+
+                case "bluetooth":
+                    toggleBluetooth(context, false);
+                    break;
+
+                case "data":
+                    // Show notification for manual data toggle
+                    Log.d(TAG, "Mobile data disable requested");
+                    break;
+
+                case "dnd":
+                    disableDoNotDisturb(context);
+                    break;
+
+                default:
+                    Log.w(TAG, "Unknown action to deactivate: " + action);
+                    break;
+            }
+        }
+    }
 }

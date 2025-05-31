@@ -3,7 +3,7 @@ package com.example.sssshhift.geofencing;
 import android.content.Context;
 import android.util.Log;
 import com.google.android.gms.location.Geofence;
-import com.example.sssshhift.utils.LocationUtils;
+import com.example.sssshhift.location.LocationUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

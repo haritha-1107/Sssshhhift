@@ -19,6 +19,7 @@ public class CalendarMonitorService extends Service {
     private static final String TAG = "CalendarMonitorService";
     private static final String PREF_PREVIOUS_RINGER_MODE = "previous_ringer_mode";
     private static final String PREF_CALENDAR_MODE_ACTIVE = "calendar_mode_active";
+    private static final String PREF_LAST_EVENT_CHECK = "last_event_check";
     private static final long CHECK_INTERVAL = 30000; // Check every 30 seconds
 
     private final Handler handler = new Handler();
@@ -27,6 +28,7 @@ public class CalendarMonitorService extends Service {
     private NotificationManager notificationManager;
     private SharedPreferences sharedPreferences;
     private boolean wasInCalendarMode = false;
+    private long lastEventEndTime = 0;
 
     @Override
     public void onCreate() {
@@ -36,6 +38,10 @@ public class CalendarMonitorService extends Service {
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        // Restore state
+        wasInCalendarMode = sharedPreferences.getBoolean(PREF_CALENDAR_MODE_ACTIVE, false);
+        lastEventEndTime = sharedPreferences.getLong(PREF_LAST_EVENT_CHECK, 0);
 
         // Create notification channel
         NotificationUtils.createNotificationChannel(this);
@@ -57,14 +63,35 @@ public class CalendarMonitorService extends Service {
     private void checkCalendarAndUpdateRingerMode() {
         try {
             boolean hasOngoingEvent = CalendarUtils.isEventOngoing(getApplicationContext());
+            long currentTime = System.currentTimeMillis();
+
+            Log.d(TAG, "Calendar check - Has ongoing event: " + hasOngoingEvent + 
+                      ", Was in calendar mode: " + wasInCalendarMode);
 
             if (hasOngoingEvent && !wasInCalendarMode) {
                 // Event started - activate silent mode
                 activateCalendarSilentMode();
+                lastEventEndTime = 0; // Reset end time
             } else if (!hasOngoingEvent && wasInCalendarMode) {
-                // Event ended - restore previous mode
-                deactivateCalendarSilentMode();
+                // No ongoing event, but we were in calendar mode
+                if (lastEventEndTime == 0) {
+                    // First detection of event end
+                    lastEventEndTime = currentTime;
+                    Log.d(TAG, "Event appears to have ended, starting grace period");
+                } else if (currentTime - lastEventEndTime >= 60000) { // 1-minute grace period
+                    // Event has been ended for more than a minute, deactivate
+                    deactivateCalendarSilentMode();
+                    lastEventEndTime = 0;
+                }
+            } else if (hasOngoingEvent) {
+                // Still in event, update last check time
+                lastEventEndTime = 0;
             }
+
+            // Save state
+            sharedPreferences.edit()
+                    .putLong(PREF_LAST_EVENT_CHECK, lastEventEndTime)
+                    .apply();
 
         } catch (Exception e) {
             Log.e(TAG, "Error in calendar check: " + e.getMessage());
@@ -79,18 +106,19 @@ public class CalendarMonitorService extends Service {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 if (!notificationManager.isNotificationPolicyAccessGranted()) {
                     Log.w(TAG, "Do Not Disturb permission not granted");
-                    // Show notification to user about permission
                     NotificationUtils.showPermissionRequiredNotification(this);
                     return;
                 }
             }
 
-            // Save current ringer mode
-            int currentRingerMode = audioManager.getRingerMode();
-            sharedPreferences.edit()
-                    .putInt(PREF_PREVIOUS_RINGER_MODE, currentRingerMode)
-                    .putBoolean(PREF_CALENDAR_MODE_ACTIVE, true)
-                    .apply();
+            // Save current ringer mode only if we're not already in calendar mode
+            if (!wasInCalendarMode) {
+                int currentRingerMode = audioManager.getRingerMode();
+                sharedPreferences.edit()
+                        .putInt(PREF_PREVIOUS_RINGER_MODE, currentRingerMode)
+                        .putBoolean(PREF_CALENDAR_MODE_ACTIVE, true)
+                        .apply();
+            }
 
             // Set to silent mode
             audioManager.setRingerMode(AudioManager.RINGER_MODE_SILENT);
@@ -116,21 +144,24 @@ public class CalendarMonitorService extends Service {
         if (audioManager == null) return;
 
         try {
-            // Restore previous ringer mode
-            int previousRingerMode = sharedPreferences.getInt(PREF_PREVIOUS_RINGER_MODE, AudioManager.RINGER_MODE_NORMAL);
-            audioManager.setRingerMode(previousRingerMode);
+            // Only restore if we were actually in calendar mode
+            if (wasInCalendarMode) {
+                // Restore previous ringer mode
+                int previousRingerMode = sharedPreferences.getInt(PREF_PREVIOUS_RINGER_MODE, AudioManager.RINGER_MODE_NORMAL);
+                audioManager.setRingerMode(previousRingerMode);
 
-            // Clear calendar mode flag
-            sharedPreferences.edit()
-                    .putBoolean(PREF_CALENDAR_MODE_ACTIVE, false)
-                    .apply();
+                // Clear calendar mode flag
+                sharedPreferences.edit()
+                        .putBoolean(PREF_CALENDAR_MODE_ACTIVE, false)
+                        .apply();
 
-            wasInCalendarMode = false;
+                wasInCalendarMode = false;
 
-            // Show notification
-            NotificationUtils.showProfileEndedNotification(this, "Calendar Event");
+                // Show notification
+                NotificationUtils.showProfileEndedNotification(this, "Calendar Event");
 
-            Log.d(TAG, "Calendar silent mode deactivated, restored to mode: " + previousRingerMode);
+                Log.d(TAG, "Calendar silent mode deactivated, restored to mode: " + previousRingerMode);
+            }
 
         } catch (SecurityException e) {
             Log.e(TAG, "Security exception restoring ringer mode: " + e.getMessage());
@@ -154,10 +185,10 @@ public class CalendarMonitorService extends Service {
             handler.removeCallbacks(calendarCheckRunnable);
         }
 
-        // If service is destroyed while in calendar mode, restore normal mode
-        if (wasInCalendarMode) {
-            deactivateCalendarSilentMode();
-        }
+        // Save last state before destruction
+        sharedPreferences.edit()
+                .putLong(PREF_LAST_EVENT_CHECK, lastEventEndTime)
+                .apply();
     }
 
     @Override

@@ -46,9 +46,11 @@ dependencies {
     // WorkManager
     implementation("androidx.work:work-runtime:2.8.1")
 
-    // Google Play Services
+    // Google Play Services - Maps Only
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation("androidx.room:room-common-jvm:2.7.1")
+    implementation("androidx.room:room-runtime-android:2.7.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

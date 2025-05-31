@@ -58,7 +58,7 @@
         <!-- Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBq2NxLjkFRtRkMWHMm6yCapzwd3zDZm8Y" />
+            android:value="AIzaSyDZEinSwiNg-_hbhuz1j3oTDsWdHg4YnBw" />
 
         <!-- Google Play Services Version -->
         <meta-data
@@ -83,15 +83,10 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="false" />
 
         <activity
-            android:name=".activities.LocationPickerActivity"
+            android:name=".location.LocationPickerActivity"
             android:label="Pick Location"
             android:exported="false"
             android:theme="@style/Theme.Sssshhhift" />
@@ -103,6 +98,16 @@
         <activity 
             android:name=".activities.EditProfileActivity" 
             android:exported="false" />
+
+        <activity
+            android:name=".activities.UsageInsightsActivity"
+            android:label="Usage Insights"
+            android:parentActivityName=".activities.MainActivity"
+            android:theme="@style/Theme.MaterialComponents.Light.DarkActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".activities.MainActivity" />
+        </activity>
 
         <!-- Content Provider -->
         <provider
@@ -137,12 +142,12 @@
         </receiver>
 
         <receiver
-            android:name=".receivers.GeofenceReceiver"
+            android:name=".receivers.ProfileTimerReceiver"
             android:enabled="true"
             android:exported="false" />
 
         <receiver
-            android:name=".receivers.ProfileTimerReceiver"
+            android:name=".location.LocationTriggerReceiver"
             android:enabled="true"
             android:exported="false" />
 
@@ -156,7 +161,8 @@
             android:name=".services.BluetoothMonitorService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="connectedDevice" />
+            android:foregroundServiceType="connectedDevice"
+            tools:ignore="ForegroundServicePermission" />
 
         <service
             android:name=".services.CalendarMonitorService"
@@ -174,26 +180,35 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
-        <receiver
-            android:name=".location.LocationReceiver"
-            android:enabled="true"
-            android:exported="false" />
-
         <!-- Smart Auto Mode components -->
         <receiver
             android:name=".features.smartauto.SmartAutoReceiver"
-            android:exported="false">
+            android:enabled="true"
+            android:exported="true"
+            android:directBootAware="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.example.sssshhift.SMART_AUTO_ALARM_SILENT" />
+                <action android:name="com.example.sssshhift.SMART_AUTO_ALARM_REVERT" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
 
         <receiver
             android:name=".features.smartauto.SmartAutoBootReceiver"
             android:enabled="true"
-            android:exported="true">
-            <intent-filter>
+            android:exported="true"
+            android:directBootAware="true">
+            <intent-filter android:priority="999">
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.REBOOT" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_CHANGED" />
+                <action android:name="android.intent.action.PACKAGE_DATA_CLEARED" />
+                <data android:scheme="package" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
 

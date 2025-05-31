@@ -22,6 +22,7 @@ import com.example.sssshhift.adapters.ProfileAdapter;
 import com.example.sssshhift.models.Profile;
 import com.example.sssshhift.provider.ProfileContentProvider;
 import com.example.sssshhift.utils.NotificationUtils;
+import com.example.sssshhift.utils.PhoneSettingsManager;
 import com.example.sssshhift.utils.ProfileUtils;
 import java.util.ArrayList;
 import java.util.List;
@@ -120,37 +121,52 @@ public class ProfilesFragment extends Fragment implements ProfileAdapter.OnProfi
                 // Update local profile object
                 profile.setActive(isActive);
 
-                if (isActive) {
-                    // Schedule the profile (don't apply immediately - just schedule!)
-                    if ("time".equals(profile.getTriggerType())) {
-                        ProfileUtils.scheduleProfile(requireContext(), profile.getName(), true, profile.getTriggerValue(), profile.getEndTime());
-                    } else {
-                        ProfileUtils.scheduleProfile(requireContext(), profile.getName(), false, profile.getTriggerValue(), profile.getEndTime());
-                    }
-
-                    String message = "Profile '" + profile.getName() + "' enabled and scheduled!";
-                    if (profile.getEndTime() != null && !profile.getEndTime().isEmpty()) {
-                        message += " (Duration: " + profile.getTriggerValue() + " - " + profile.getEndTime() + ")";
-                    }
-                    Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
-                } else {
-                    // Cancel the scheduled profile
-                    ProfileUtils.cancelProfileAlarms(requireContext(), profile.getName());
-
-                    Toast.makeText(getContext(),
-                            "Profile '" + profile.getName() + "' disabled",
-                            Toast.LENGTH_SHORT).show();
+                // Handle based on profile type
+                if ("location".equals(profile.getTriggerType())) {
+                    handleLocationProfileToggle(profile, isActive);
+                } else if ("time".equals(profile.getTriggerType())) {
+                    handleTimeProfileToggle(profile, isActive);
                 }
 
-                // Refresh the adapter to update UI
                 adapter.notifyDataSetChanged();
-            } else {
-                Toast.makeText(getContext(), "Failed to update profile", Toast.LENGTH_SHORT).show();
             }
-
         } catch (Exception e) {
             e.printStackTrace();
-            Toast.makeText(getContext(), "Error updating profile: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), "Error toggling profile", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void handleLocationProfileToggle(Profile profile, boolean isActive) {
+        if (!isActive) {
+            // Deactivate the profile if it was the active one
+            String activeProfile = requireContext().getSharedPreferences("profile_prefs", Context.MODE_PRIVATE)
+                .getString("active_location_profile", "");
+            
+            if (profile.getName().equals(activeProfile)) {
+                // Clear the active profile
+                requireContext().getSharedPreferences("profile_prefs", Context.MODE_PRIVATE)
+                    .edit()
+                    .remove("active_location_profile")
+                    .apply();
+                
+                // Deactivate the profile settings
+                PhoneSettingsManager.deactivateProfile(requireContext(), profile.getActions());
+                Toast.makeText(requireContext(), "Location profile deactivated", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void handleTimeProfileToggle(Profile profile, boolean isActive) {
+        if (isActive) {
+            ProfileUtils.scheduleProfile(requireContext(), profile.getName(), true, profile.getTriggerValue(), profile.getEndTime());
+            String message = "Timer profile enabled for " + profile.getTriggerValue();
+            if (profile.getEndTime() != null && !profile.getEndTime().isEmpty()) {
+                message += " until " + profile.getEndTime();
+            }
+            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+        } else {
+            ProfileUtils.cancelProfileAlarms(requireContext(), profile.getName());
+            Toast.makeText(requireContext(), "Timer profile disabled", Toast.LENGTH_SHORT).show();
         }
     }
 

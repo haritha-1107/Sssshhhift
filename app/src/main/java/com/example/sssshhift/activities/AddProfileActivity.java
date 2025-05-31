@@ -24,6 +24,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.sssshhift.data.ProfileDatabaseHelper;
+import com.example.sssshhift.location.LocationPickerActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -34,6 +35,7 @@ import com.example.sssshhift.R;
 import com.example.sssshhift.provider.ProfileContentProvider;
 import com.example.sssshhift.utils.PermissionUtils;
 import com.example.sssshhift.utils.ProfileUtils;
+import com.example.sssshhift.utils.PhoneSettingsManager;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -272,61 +274,149 @@ public class AddProfileActivity extends AppCompatActivity implements LocationLis
         startActivityForResult(intent, LOCATION_PICKER_REQUEST_CODE);
     }
 
-    @SuppressLint("MissingPermission")
-    private void getCurrentLocation() {
-        if (!PermissionUtils.hasLocationPermission(this)) {
-            PermissionUtils.requestLocationPermission(this);
+    private void saveProfile() {
+        if (!validateInput()) {
             return;
         }
 
-        try {
+        // Prepare profile data
+        ContentValues values = new ContentValues();
+        values.put(ProfileDatabaseHelper.COLUMN_NAME, profileNameEdit.getText().toString().trim());
+        values.put(ProfileDatabaseHelper.COLUMN_TRIGGER_TYPE, locationRadio.isChecked() ? "location" : "time");
+        
+        // Store either time or location coordinates in TRIGGER_VALUE based on trigger type
+        if (locationRadio.isChecked()) {
+            String locationValue = selectedLatitude + "," + selectedLongitude;
+            values.put(ProfileDatabaseHelper.COLUMN_TRIGGER_VALUE, locationValue);
+        } else {
+            values.put(ProfileDatabaseHelper.COLUMN_TRIGGER_VALUE, selectedTime);
+        }
+        
+        values.put(ProfileDatabaseHelper.COLUMN_END_TIME, selectedEndTime);
+        values.put(ProfileDatabaseHelper.COLUMN_RINGER_MODE, getSelectedRingerMode());
+        values.put(ProfileDatabaseHelper.COLUMN_ACTIONS, getSelectedActions());
+        values.put(ProfileDatabaseHelper.COLUMN_IS_ACTIVE, locationRadio.isChecked() ? 1 : 0); // Activate location-based profiles by default
+        values.put(ProfileDatabaseHelper.COLUMN_CREATED_AT, System.currentTimeMillis()); // Add creation timestamp
+
+        // Save profile
+        Uri uri = getContentResolver().insert(ProfileContentProvider.CONTENT_URI, values);
+
+        if (uri != null) {
+            Toast.makeText(this, "Profile saved successfully", Toast.LENGTH_SHORT).show();
+
+            // If this is a location-based profile using current location, activate it immediately
+            if (locationRadio.isChecked()) {
+                long profileId = Long.parseLong(uri.getLastPathSegment());
+                String profileName = profileNameEdit.getText().toString().trim();
+                
+                // Get the last known location
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                    if (lastLocation != null) {
+                        float[] results = new float[1];
+                        Location.distanceBetween(lastLocation.getLatitude(), lastLocation.getLongitude(),
+                                selectedLatitude, selectedLongitude, results);
+                        
+                        // If we're within the radius (e.g., 100 meters)
+                        if (results[0] <= 100) {
+                            // Apply the profile settings immediately
+                            String ringerMode = getSelectedRingerMode();
+                            PhoneSettingsManager.setRingerMode(this, ringerMode);
+                            PhoneSettingsManager.applyActions(this, getSelectedActions());
+                            
+                            // Store this as the active profile
+                            getSharedPreferences("profile_prefs", MODE_PRIVATE)
+                                .edit()
+                                .putString("active_location_profile", profileName)
+                                .apply();
+                            
+                            Toast.makeText(this, "Profile activated", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+            }
+
+            setResult(RESULT_OK);
+            finish();
+        } else {
+            Toast.makeText(this, "Error saving profile", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private void getCurrentLocation() {
+        if (!PermissionUtils.hasLocationPermission(this)) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    LOCATION_PERMISSION_REQUEST_CODE);
+            return;
+        }
+
+        // Show loading indicator
+        getCurrentLocationBtn.setEnabled(false);
+        getCurrentLocationBtn.setText("Getting location...");
+
+        Location lastLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        if (lastLocation != null) {
+            handleLocationUpdate(lastLocation);
+        } else {
+            // Request location updates
             locationManager.requestLocationUpdates(
                     LocationManager.GPS_PROVIDER,
-                    1000,
-                    1,
-                    this
-            );
+                    0,
+                    0,
+                    this);
+        }
+    }
 
-            locationManager.requestLocationUpdates(
-                    LocationManager.NETWORK_PROVIDER,
-                    1000,
-                    1,
-                    this
-            );
+    private void handleLocationUpdate(Location location) {
+        selectedLatitude = location.getLatitude();
+        selectedLongitude = location.getLongitude();
+        isLocationSelected = true;
 
-            Toast.makeText(this, "Getting current location...", Toast.LENGTH_SHORT).show();
+        // Update UI
+        getCurrentLocationBtn.setEnabled(true);
+        getCurrentLocationBtn.setText("Get Current Location");
 
-        } catch (SecurityException e) {
-            Toast.makeText(this, "Location permission required", Toast.LENGTH_SHORT).show();
+        // Get address for the location
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        try {
+            List<Address> addresses = geocoder.getFromLocation(selectedLatitude, selectedLongitude, 1);
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
+                String addressText = "";
+                
+                // Get the most detailed address possible
+                if (address.getMaxAddressLineIndex() > 0) {
+                    addressText = address.getAddressLine(0);
+                } else {
+                    // Build address from components
+                    if (address.getLocality() != null) {
+                        addressText += address.getLocality() + ", ";
+                    }
+                    if (address.getAdminArea() != null) {
+                        addressText += address.getAdminArea();
+                    }
+                }
+                
+                selectedLocationText.setText(addressText);
+                selectedLocationText.setVisibility(View.VISIBLE);
+            }
+        } catch (IOException e) {
+            String locationText = String.format(Locale.getDefault(),
+                    "Lat: %.6f, Long: %.6f",
+                    selectedLatitude,
+                    selectedLongitude);
+            selectedLocationText.setText(locationText);
+            selectedLocationText.setVisibility(View.VISIBLE);
         }
     }
 
     @Override
     public void onLocationChanged(Location location) {
-        selectedLatitude = location.getLatitude();
-        selectedLongitude = location.getLongitude();
-        isLocationSelected = true;
-
-        try {
-            Geocoder geocoder = new Geocoder(this, Locale.getDefault());
-            List<Address> addresses = geocoder.getFromLocation(selectedLatitude, selectedLongitude, 1);
-
-            if (addresses != null && !addresses.isEmpty()) {
-                Address address = addresses.get(0);
-                String locationName = address.getFeatureName() + ", " + address.getLocality();
-                selectedLocationText.setText("Selected: " + locationName);
-            } else {
-                selectedLocationText.setText("Selected: " + selectedLatitude + ", " + selectedLongitude);
-            }
-        } catch (IOException e) {
-            selectedLocationText.setText("Selected: " + selectedLatitude + ", " + selectedLongitude);
-        }
-
-        selectedLocationText.setVisibility(View.VISIBLE);
-
-        // Stop location updates after getting location
+        // Remove location updates after getting the first update
         locationManager.removeUpdates(this);
-        Toast.makeText(this, "Location selected successfully", Toast.LENGTH_SHORT).show();
+        handleLocationUpdate(location);
     }
 
     @Override
@@ -343,67 +433,6 @@ public class AddProfileActivity extends AppCompatActivity implements LocationLis
     public void onProviderDisabled(String provider) {
         // Handle location provider disabled
         Toast.makeText(this, "Please enable " + provider + " for location services", Toast.LENGTH_SHORT).show();
-    }
-
-    private void saveProfile() {
-        // Validate input
-        if (!validateInput()) {
-            return;
-        }
-
-        // Gather profile data
-        String profileName = profileNameEdit.getText().toString().trim();
-        boolean isTimeBased = timeRadio.isChecked();
-        String ringerMode = getSelectedRingerMode();
-        String actions = getSelectedActions();
-
-        // Create ContentValues with CORRECT column names
-        ContentValues values = new ContentValues();
-
-        // Use the actual column names from ProfileDatabaseHelper
-        values.put(ProfileDatabaseHelper.COLUMN_NAME, profileName);  // "name", not "profile_name"
-        values.put(ProfileDatabaseHelper.COLUMN_TRIGGER_TYPE, isTimeBased ? "time" : "location");
-
-        // Set trigger_value based on type
-        if (isTimeBased) {
-            values.put(ProfileDatabaseHelper.COLUMN_TRIGGER_VALUE, selectedTime);
-            // Add end_time if enabled
-            if (enableEndTimeSwitch.isChecked() && !TextUtils.isEmpty(selectedEndTime)) {
-                values.put(ProfileDatabaseHelper.COLUMN_END_TIME, selectedEndTime);
-            }
-        } else {
-            // For location-based, store coordinates as "lat,lng"
-            String locationValue = selectedLatitude + "," + selectedLongitude;
-            values.put(ProfileDatabaseHelper.COLUMN_TRIGGER_VALUE, locationValue);
-        }
-
-        values.put(ProfileDatabaseHelper.COLUMN_RINGER_MODE, ringerMode);
-        values.put(ProfileDatabaseHelper.COLUMN_ACTIONS, actions);
-        values.put(ProfileDatabaseHelper.COLUMN_IS_ACTIVE, 0);  // Use integer, not boolean
-        values.put(ProfileDatabaseHelper.COLUMN_CREATED_AT, System.currentTimeMillis());
-
-        try {
-            // Insert into database using ContentProvider
-            Uri result = getContentResolver().insert(ProfileContentProvider.CONTENT_URI, values);
-
-            if (result != null) {
-                Toast.makeText(this, "Profile created successfully!", Toast.LENGTH_SHORT).show();
-
-                // Schedule the profile if it's time-based
-                if (isTimeBased) {
-                    ProfileUtils.scheduleProfile(this, profileName, true, selectedTime, selectedEndTime);
-                }
-
-                // Return to previous activity
-                finish();
-            } else {
-                Toast.makeText(this, "Failed to create profile", Toast.LENGTH_SHORT).show();
-            }
-        } catch (Exception e) {
-            Toast.makeText(this, "Error creating profile: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            // Add logging to see the actual error
-            android.util.Log.e("AddProfileActivity", "Error saving profile", e);
-        }
     }
 
     private boolean validateInput() {

@@ -15,6 +15,7 @@ import java.util.Calendar;
 
 public class CalendarUtils {
     private static final String TAG = "CalendarUtils";
+    private static final long BUFFER_TIME_MS = 60000; // 1 minute buffer
 
     /**
      * Check if there's an ongoing calendar event
@@ -29,63 +30,60 @@ public class CalendarUtils {
             return false;
         }
 
+        Cursor cursor = null;
         try {
             ContentResolver contentResolver = context.getContentResolver();
             long currentTime = System.currentTimeMillis();
 
-            // Query for events happening now
+            // Query for events happening now (with buffer)
             Uri.Builder eventsUriBuilder = CalendarContract.Instances.CONTENT_URI.buildUpon();
-            ContentUris.appendId(eventsUriBuilder, currentTime - 60000); // 1 minute before now
-            ContentUris.appendId(eventsUriBuilder, currentTime + 60000); // 1 minute after now
+            ContentUris.appendId(eventsUriBuilder, currentTime - BUFFER_TIME_MS);
+            ContentUris.appendId(eventsUriBuilder, currentTime + BUFFER_TIME_MS);
 
             String[] projection = {
                     CalendarContract.Instances.TITLE,
                     CalendarContract.Instances.BEGIN,
                     CalendarContract.Instances.END,
-                    CalendarContract.Instances.ALL_DAY
+                    CalendarContract.Instances.ALL_DAY,
+                    CalendarContract.Instances.EVENT_ID,
+                    CalendarContract.Instances.AVAILABILITY
             };
 
-            // Only get events from calendars that are visible/selected
-            String selection = CalendarContract.Instances.VISIBLE + " = 1";
+            // Only get events from calendars that are visible/selected and not declined
+            String selection = CalendarContract.Instances.VISIBLE + " = 1 AND " +
+                             CalendarContract.Instances.SELF_ATTENDEE_STATUS + " != " + 
+                             CalendarContract.Attendees.ATTENDEE_STATUS_DECLINED + " AND " +
+                             CalendarContract.Instances.BEGIN + " <= ? AND " +
+                             CalendarContract.Instances.END + " >= ?";
+            
+            String[] selectionArgs = new String[] {
+                String.valueOf(currentTime),
+                String.valueOf(currentTime)
+            };
 
-            Cursor cursor = contentResolver.query(
-                    eventsUriBuilder.build(),
-                    projection,
-                    selection,
-                    null,
-                    CalendarContract.Instances.BEGIN + " ASC"
+            cursor = contentResolver.query(
+                eventsUriBuilder.build(),
+                projection,
+                selection,
+                selectionArgs,
+                null
             );
 
-            if (cursor == null) {
-                Log.w(TAG, "Calendar query returned null cursor");
-                return false;
+            if (cursor != null && cursor.moveToFirst()) {
+                Log.d(TAG, "Found ongoing calendar event");
+                return true;
             }
 
-            boolean hasOngoingEvent = false;
-
-            while (cursor.moveToNext()) {
-                long eventStart = cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Instances.BEGIN));
-                long eventEnd = cursor.getLong(cursor.getColumnIndexOrThrow(CalendarContract.Instances.END));
-                int allDay = cursor.getInt(cursor.getColumnIndexOrThrow(CalendarContract.Instances.ALL_DAY));
-                String title = cursor.getString(cursor.getColumnIndexOrThrow(CalendarContract.Instances.TITLE));
-
-                // Check if current time is between event start and end
-                if (currentTime >= eventStart && currentTime <= eventEnd) {
-                    Log.d(TAG, "Ongoing event found: " + title);
-                    hasOngoingEvent = true;
-                    break;
-                }
-            }
-
-            cursor.close();
-            return hasOngoingEvent;
-
-        } catch (SecurityException e) {
-            Log.e(TAG, "Security exception accessing calendar: " + e.getMessage());
+            Log.d(TAG, "No ongoing calendar events found");
             return false;
+
         } catch (Exception e) {
-            Log.e(TAG, "Error checking calendar events: " + e.getMessage());
+            Log.e(TAG, "Error checking calendar events: " + e.getMessage(), e);
             return false;
+        } finally {
+            if (cursor != null && !cursor.isClosed()) {
+                cursor.close();
+            }
         }
     }
 

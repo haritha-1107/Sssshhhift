@@ -26,6 +26,7 @@ import androidx.core.content.ContextCompat;
 
 
 import com.example.sssshhift.data.ProfileDatabaseHelper;
+import com.example.sssshhift.location.LocationPickerActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
