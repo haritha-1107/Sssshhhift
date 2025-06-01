@@ -34,57 +34,41 @@ public class TimerProfileManager {
     }
 
     public boolean scheduleProfile(long startTime, long endTime, int ringerMode, String profileName) {
-        Log.d(TAG, "Attempting to schedule profile: " + profileName);
-        
-        // Validate times
-        long currentTime = System.currentTimeMillis();
-        if (startTime <= currentTime) {
-            Log.e(TAG, "Start time must be in the future");
-            return false;
-        }
-        if (endTime <= startTime) {
-            Log.e(TAG, "End time must be after start time");
-            return false;
-        }
-
-        // Check permissions and system settings
-        if (!checkPermissions()) {
-            return false;
-        }
-
-        // Ensure device is not in power save mode
-        if (powerManager.isPowerSaveMode()) {
-            Log.w(TAG, "Device is in power save mode, this might affect alarm reliability");
-        }
-
         try {
-            // Cancel any existing alarms first
-            cancelProfile(startTime, endTime);
+            // Check if we have permission to schedule exact alarms
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (!alarmManager.canScheduleExactAlarms()) {
+                    Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                    return false;
+                }
+            }
 
-            // Schedule start alarm with multiple approaches for redundancy
+            // Check if we have DND access
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (!notificationManager.isNotificationPolicyAccessGranted()) {
+                    Intent intent = new Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                    return false;
+                }
+            }
+
+            // Schedule start time with redundancy
             boolean startScheduled = scheduleAlarmWithRedundancy(startTime, ringerMode, true, profileName);
-            if (!startScheduled) {
-                Log.e(TAG, "Failed to schedule start alarm");
-                return false;
-            }
-
-            // Schedule end alarm with multiple approaches for redundancy
+            
+            // Schedule end time with redundancy
             boolean endScheduled = scheduleAlarmWithRedundancy(endTime, AudioManager.RINGER_MODE_NORMAL, false, profileName);
-            if (!endScheduled) {
-                // If end scheduling fails, cancel the start alarm
-                cancelAlarm(createPendingIntent(startTime, ringerMode, true, profileName));
-                Log.e(TAG, "Failed to schedule end alarm");
-                return false;
+
+            // Save the profile for persistence
+            if (startScheduled && endScheduled) {
+                TimerBootReceiver.saveProfile(context, startTime, endTime, ringerMode, profileName);
             }
 
-            // Save the scheduled times
-            saveScheduledTime(startTime, true);
-            saveScheduledTime(endTime, false);
-
-            Log.d(TAG, "Successfully scheduled profile: " + profileName);
-            return true;
+            return startScheduled && endScheduled;
         } catch (Exception e) {
-            Log.e(TAG, "Error scheduling profile: " + e.getMessage());
+            Log.e(TAG, "Error scheduling profile", e);
             return false;
         }
     }
@@ -103,7 +87,7 @@ public class TimerProfileManager {
             alarmManager.cancel(earlyIntent);
             alarmManager.cancel(extraIntent);
 
-            // Schedule multiple alarms with different methods
+            // Schedule multiple alarms with different methods for maximum reliability
             
             // 1. Primary alarm using setAlarmClock (highest priority, shows in system UI)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -116,8 +100,8 @@ public class TimerProfileManager {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, backupIntent);
             }
 
-            // 3. Early alarm (30 seconds before) using setAlarmClock
-            long earlyTime = triggerTime - 30000; // 30 seconds earlier
+            // 3. Early alarm (2 minutes before) using setAlarmClock
+            long earlyTime = triggerTime - (2 * 60 * 1000); // 2 minutes earlier
             if (earlyTime > System.currentTimeMillis()) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     AlarmManager.AlarmClockInfo earlyAlarmInfo = new AlarmManager.AlarmClockInfo(earlyTime, null);
@@ -125,16 +109,15 @@ public class TimerProfileManager {
                 }
             }
 
-            // 4. Extra backup using setAndAllowWhileIdle (1 minute before)
+            // 4. Extra backup using setAndAllowWhileIdle (30 seconds before)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime - 60000, extraIntent);
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime - 30000, extraIntent);
             }
 
             // For older versions, use setExact as fallback
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, primaryIntent);
-                // Set a backup alarm 1 minute before
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime - 60000, extraIntent);
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime - 30000, extraIntent);
             }
 
             // Save the scheduled alarm details

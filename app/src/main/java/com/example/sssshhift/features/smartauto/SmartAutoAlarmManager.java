@@ -18,9 +18,10 @@ import java.util.Set;
 
 public class SmartAutoAlarmManager {
     private static final String TAG = "SmartAutoAlarmManager";
-    private static final String PREF_PREVIOUS_RINGER_MODE = "previous_ringer_mode";
-    private static final Object lock = new Object();
-    public static final String PREF_ACTIVE_EVENTS = "active_calendar_events";
+    private static final String PREF_PREVIOUS_RINGER_MODE = "previous_ringer_mode_";
+    private static final String PREF_ACTIVE_EVENTS = "active_calendar_events";
+    private static final String PREF_EVENT_END_TIME = "event_end_time_";
+    private static final int REVERT_BUFFER_TIME = 2 * 60 * 1000; // 2 minutes buffer
 
     /**
      * Get the set of active calendar events
@@ -29,7 +30,7 @@ public class SmartAutoAlarmManager {
      */
     public static Set<String> getActiveEvents(Context context) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        return prefs.getStringSet(PREF_ACTIVE_EVENTS, new HashSet<>());
+        return new HashSet<>(prefs.getStringSet(PREF_ACTIVE_EVENTS, new HashSet<>()));
     }
 
     /**
@@ -50,39 +51,19 @@ public class SmartAutoAlarmManager {
     public static void cleanupRingerModePreference(Context context, long eventStartTime) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         prefs.edit()
-            .remove(PREF_PREVIOUS_RINGER_MODE + "_" + eventStartTime)
+            .remove(PREF_PREVIOUS_RINGER_MODE + eventStartTime)
+            .remove(PREF_EVENT_END_TIME + eventStartTime)
             .apply();
         Log.d(TAG, "Cleaned up ringer mode preference for event at: " + new Date(eventStartTime));
     }
 
     public static void scheduleRingerModeChange(Context context, long eventStart, long eventEnd) {
-        synchronized (lock) {
+        synchronized (SmartAutoAlarmManager.class) {
+            Log.d(TAG, "Scheduling ringer mode change for event: " + new Date(eventStart) + " to " + new Date(eventEnd));
+
             AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             if (alarmManager == null) {
-                Log.e(TAG, "AlarmManager is null");
-                return;
-            }
-
-            // Check if app can schedule exact alarms (Android 12+)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                boolean canSchedule = alarmManager.canScheduleExactAlarms();
-                Log.d(TAG, "Can schedule exact alarms: " + canSchedule);
-                if (!canSchedule) {
-                    Log.e(TAG, "Cannot schedule exact alarms");
-                    return;
-                }
-            }
-
-            // Check if app has Do Not Disturb access
-            NotificationManager notificationManager = 
-                    (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-            boolean hasDndAccess = notificationManager != null && notificationManager.isNotificationPolicyAccessGranted();
-            Log.d(TAG, "Has DND access: " + hasDndAccess);
-            
-            if (!hasDndAccess) {
-                Intent intent = new Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(intent);
+                Log.e(TAG, "AlarmManager not available");
                 return;
             }
 
@@ -94,61 +75,49 @@ public class SmartAutoAlarmManager {
             Set<String> activeEvents = getActiveEvents(context);
             String eventKey = eventStart + "_" + eventEnd;
 
-            Log.d(TAG, "Pre-event offset: " + preEventOffset + " minutes");
-            Log.d(TAG, "Revert after event: " + revertAfterEvent);
-            Log.d(TAG, "Active events: " + activeEvents);
-
             // Get current time and calculate silent mode time
             long currentTime = System.currentTimeMillis();
             long silentTime = eventStart - (preEventOffset * 60 * 1000);
-            
-            Log.d(TAG, "Current time: " + new Date(currentTime));
-            Log.d(TAG, "Event start: " + new Date(eventStart));
-            Log.d(TAG, "Event end: " + new Date(eventEnd));
-            Log.d(TAG, "Silent mode time: " + new Date(silentTime));
-            
-            // Cancel any existing alarms for this event first
+
+            // Cancel any existing alarms for this event
             cancelScheduledChanges(context, eventStart);
+
+            // Store event end time
+            prefs.edit().putLong(PREF_EVENT_END_TIME + eventStart, eventEnd).apply();
 
             // Add event to active events
             activeEvents.add(eventKey);
             updateActiveEvents(context, activeEvents);
 
-            // Handle silent mode scheduling
-            if (silentTime > currentTime && currentTime < eventStart) {
-                // If we're before the silent time, schedule the silent mode activation
-                Log.d(TAG, "Scheduling silent mode activation");
-                scheduleAlarm(context, silentTime, true, eventStart);
+            // Schedule silent mode activation if we haven't passed the start time
+            if (silentTime > currentTime) {
+                scheduleAlarm(context, silentTime, true, eventStart, "ACTIVATE_SILENT");
+                Log.d(TAG, "Scheduled silent mode activation for: " + new Date(silentTime));
             } else if (currentTime < eventEnd) {
                 // If we're between start and end time, activate silent mode immediately
-                Log.d(TAG, "Past silent time but before event end, activating silent mode now");
                 changeRingerMode(context, true, eventStart);
+                Log.d(TAG, "Activated silent mode immediately");
             }
 
-            // Always schedule the revert alarm if the event hasn't ended yet and revert is enabled
+            // Schedule multiple revert alarms for redundancy
             if (revertAfterEvent && currentTime < eventEnd) {
-                Log.d(TAG, "Scheduling revert to previous mode at: " + new Date(eventEnd));
-                // Schedule multiple revert alarms for redundancy
-                scheduleAlarm(context, eventEnd, false, eventStart);
-                // Schedule a backup revert alarm 1 minute after the event end
-                scheduleAlarm(context, eventEnd + 60000, false, eventStart);
-            } else if (currentTime >= eventEnd) {
-                // If we're past the event end time, revert immediately if no other events are active
-                Log.d(TAG, "Past event end time, checking if revert is needed");
-                activeEvents.remove(eventKey);
-                updateActiveEvents(context, activeEvents);
-                
-                if (activeEvents.isEmpty()) {
-                    Log.d(TAG, "No active events, reverting to previous mode");
-                    changeRingerMode(context, false, eventStart);
-                } else {
-                    Log.d(TAG, "Other events still active, maintaining silent mode");
-                }
+                // Schedule primary revert alarm at event end
+                scheduleAlarm(context, eventEnd, false, eventStart, "PRIMARY_REVERT");
+                Log.d(TAG, "Scheduled primary revert alarm for: " + new Date(eventEnd));
+
+                // Schedule backup revert alarms
+                scheduleAlarm(context, eventEnd + 60000, false, eventStart, "BACKUP_REVERT_1");
+                scheduleAlarm(context, eventEnd + 120000, false, eventStart, "BACKUP_REVERT_2");
+                scheduleAlarm(context, eventEnd + 300000, false, eventStart, "BACKUP_REVERT_3");
+                Log.d(TAG, "Scheduled backup revert alarms");
+
+                // Schedule a final cleanup check
+                scheduleAlarm(context, eventEnd + REVERT_BUFFER_TIME, false, eventStart, "FINAL_CLEANUP");
             }
         }
     }
 
-    private static void scheduleAlarm(Context context, long triggerTime, boolean toSilent, long eventStart) {
+    private static void scheduleAlarm(Context context, long triggerTime, boolean toSilent, long eventStart, String type) {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager == null) return;
 
@@ -156,23 +125,19 @@ public class SmartAutoAlarmManager {
         intent.putExtra("to_silent", toSilent);
         intent.putExtra("event_start", eventStart);
         intent.putExtra("trigger_time", triggerTime);
+        intent.putExtra("alarm_type", type);
         
-        // Add action to make intent more specific
-        intent.setAction("com.example.sssshhift.SMART_AUTO_ALARM_" + (toSilent ? "SILENT" : "REVERT") + "_" + eventStart + "_" + triggerTime);
+        // Make the intent unique for each alarm type
+        String action = "com.example.sssshhift.SMART_AUTO_" + type + "_" + eventStart + "_" + triggerTime;
+        intent.setAction(action);
         
         // Add flags to ensure delivery
         intent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
         intent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
 
-        // Create unique request code based on event start time and action
-        int requestCode = (int) ((eventStart + triggerTime) % Integer.MAX_VALUE);
-        requestCode = toSilent ? requestCode * 2 : (requestCode * 2 + 1);
+        // Create unique request code
+        int requestCode = (int) ((eventStart + triggerTime + type.hashCode()) % Integer.MAX_VALUE);
 
-        Log.d(TAG, "Scheduling alarm with request code: " + requestCode + 
-                " for " + new Date(triggerTime) + 
-                " (toSilent: " + toSilent + ")");
-
-        // Create primary pending intent
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context,
                 requestCode,
@@ -180,181 +145,107 @@ public class SmartAutoAlarmManager {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        // Schedule multiple alarms with different mechanisms for redundancy
-        try {
-            // 1. Primary alarm using setAlarmClock (most reliable, will wake device)
-            alarmManager.setAlarmClock(
-                    new AlarmManager.AlarmClockInfo(triggerTime, null),
-                    pendingIntent
-            );
-            Log.d(TAG, "Scheduled primary alarm using setAlarmClock");
-
-            // 2. Early warning alarm (1 minute before) using setExactAndAllowWhileIdle
-            if (!toSilent) {  // Only for revert alarms
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    Intent earlyIntent = new Intent(context, SmartAutoReceiver.class);
-                    earlyIntent.putExtra("to_silent", toSilent);
-                    earlyIntent.putExtra("event_start", eventStart);
-                    earlyIntent.putExtra("trigger_time", triggerTime);
-                    earlyIntent.putExtra("is_early_warning", true);
-                    earlyIntent.setAction("com.example.sssshhift.SMART_AUTO_ALARM_EARLY_" + 
-                            (toSilent ? "SILENT" : "REVERT") + "_" + eventStart + "_" + triggerTime);
-
-                    PendingIntent earlyPendingIntent = PendingIntent.getBroadcast(
-                            context,
-                            requestCode + 2000000,
-                            earlyIntent,
-                            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-                    );
-
-                    alarmManager.setExactAndAllowWhileIdle(
-                            AlarmManager.RTC_WAKEUP,
-                            triggerTime - 60000, // 1 minute early
-                            earlyPendingIntent
-                    );
-                    Log.d(TAG, "Scheduled early warning alarm for revert");
-                }
-            }
-
-            // Store alarm info in SharedPreferences for recovery
-            SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(context).edit();
-            String alarmKey = "alarm_" + requestCode;
-            editor.putLong(alarmKey + "_time", triggerTime);
-            editor.putBoolean(alarmKey + "_silent", toSilent);
-            editor.putLong(alarmKey + "_event_start", eventStart);
-            editor.putLong(alarmKey + "_scheduled_at", System.currentTimeMillis());
-            editor.apply();
-
-            Log.d(TAG, "Successfully scheduled alarm for " + new Date(triggerTime) + 
-                    " (to silent: " + toSilent + ")");
-
-        } catch (Exception e) {
-            Log.e(TAG, "Error scheduling alarms: " + e.getMessage(), e);
-            // Try fallback method
-            try {
-                alarmManager.set(
-                        AlarmManager.RTC_WAKEUP,
-                        triggerTime,
-                        pendingIntent
-                );
-                Log.d(TAG, "Scheduled fallback alarm after error");
-            } catch (Exception fallbackError) {
-                Log.e(TAG, "Error scheduling fallback alarm: " + fallbackError.getMessage(), fallbackError);
-            }
+        // Schedule with exact timing and wake up the device
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+        } else {
+            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
         }
+
+        Log.d(TAG, String.format("Scheduled %s alarm for %s (Request code: %d)", type, new Date(triggerTime), requestCode));
     }
 
     public static void changeRingerMode(Context context, boolean toSilent, long eventStart) {
-        synchronized (lock) {
-            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        if (audioManager == null) return;
 
-            if (audioManager != null) {
-                try {
-                    if (toSilent) {
-                        // Store current ringer mode before changing to silent
-                        int currentMode = audioManager.getRingerMode();
-                        Log.d(TAG, "Current ringer mode: " + getRingerModeName(currentMode));
-                        Log.d(TAG, "Storing current ringer mode for event at: " + new Date(eventStart));
-                        
-                        prefs.edit()
-                            .putInt(PREF_PREVIOUS_RINGER_MODE + "_" + eventStart, currentMode)
-                            .apply();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        String prefKey = PREF_PREVIOUS_RINGER_MODE + eventStart;
 
-                        // Change to silent mode
-                        audioManager.setRingerMode(AudioManager.RINGER_MODE_SILENT);
-                        Log.d(TAG, "Changed to silent mode");
-                    } else {
-                        // Check if there are any active events before reverting
-                        Set<String> activeEvents = getActiveEvents(context);
-                        Log.d(TAG, "Current active events when attempting to revert: " + activeEvents);
-                        
-                        // Remove this event from active events since it's ending
-                        Set<String> updatedEvents = new HashSet<>(activeEvents);
-                        for (String eventKey : activeEvents) {
-                            if (eventKey.startsWith(eventStart + "_")) {
-                                updatedEvents.remove(eventKey);
-                                Log.d(TAG, "Removed ending event from active events: " + eventKey);
-                            }
-                        }
-                        updateActiveEvents(context, updatedEvents);
-                        
-                        if (updatedEvents.isEmpty()) {
-                            // Revert to previous mode only if no other events are active
-                            int previousMode = prefs.getInt(PREF_PREVIOUS_RINGER_MODE + "_" + eventStart, 
-                                    AudioManager.RINGER_MODE_NORMAL);
-                            Log.d(TAG, "Retrieved previous ringer mode: " + getRingerModeName(previousMode));
-                            
-                            audioManager.setRingerMode(previousMode);
-                            Log.d(TAG, "Reverted to previous mode: " + getRingerModeName(previousMode));
-                            
-                            // Clean up the stored preference
-                            cleanupRingerModePreference(context, eventStart);
-                        } else {
-                            Log.d(TAG, "Other events still active, maintaining silent mode. Active events: " + updatedEvents);
-                        }
-                    }
-                } catch (Exception e) {
-                    Log.e(TAG, "Error changing ringer mode", e);
-                }
+        try {
+            if (toSilent) {
+                // Store current ringer mode before changing to silent
+                int currentMode = audioManager.getRingerMode();
+                prefs.edit().putInt(prefKey, currentMode).apply();
+                audioManager.setRingerMode(AudioManager.RINGER_MODE_SILENT);
+                Log.d(TAG, "Changed to silent mode, stored previous mode: " + currentMode);
             } else {
-                Log.e(TAG, "AudioManager is null");
+                // Check if we should actually revert (no other active events)
+                if (shouldRevertRingerMode(context, eventStart)) {
+                    // Restore previous ringer mode
+                    int previousMode = prefs.getInt(prefKey, AudioManager.RINGER_MODE_NORMAL);
+                    audioManager.setRingerMode(previousMode);
+                    Log.d(TAG, "Reverted to previous mode: " + previousMode);
+                    
+                    // Clean up the preference
+                    cleanupRingerModePreference(context, eventStart);
+                } else {
+                    Log.d(TAG, "Skipping revert as other events are still active");
+                }
             }
+        } catch (Exception e) {
+            Log.e(TAG, "Error changing ringer mode: " + e.getMessage());
         }
     }
 
-    private static String getRingerModeName(int mode) {
-        switch (mode) {
-            case AudioManager.RINGER_MODE_SILENT:
-                return "SILENT";
-            case AudioManager.RINGER_MODE_VIBRATE:
-                return "VIBRATE";
-            case AudioManager.RINGER_MODE_NORMAL:
-                return "NORMAL";
-            default:
-                return "UNKNOWN";
+    private static boolean shouldRevertRingerMode(Context context, long eventStart) {
+        Set<String> activeEvents = getActiveEvents(context);
+        long currentTime = System.currentTimeMillis();
+        
+        // Remove this event from active events
+        String eventToRemove = null;
+        for (String eventKey : activeEvents) {
+            if (eventKey.startsWith(eventStart + "_")) {
+                eventToRemove = eventKey;
+                break;
+            }
         }
+        if (eventToRemove != null) {
+            activeEvents.remove(eventToRemove);
+            updateActiveEvents(context, activeEvents);
+        }
+
+        // Check remaining active events
+        for (String eventKey : activeEvents) {
+            try {
+                String[] parts = eventKey.split("_");
+                long eventEnd = Long.parseLong(parts[1]);
+                if (eventEnd > currentTime) {
+                    return false; // Found another active event
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error parsing event key: " + eventKey);
+            }
+        }
+        
+        return true;
     }
 
     public static void cancelScheduledChanges(Context context, long eventStart) {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager == null) return;
 
-        // Calculate request codes using the same logic as scheduling
-        int silentRequestCode = (int) (eventStart % Integer.MAX_VALUE) * 2;
-        int revertRequestCode = (int) (eventStart % Integer.MAX_VALUE) * 2 + 1;
-
-        // Cancel silent mode alarm
-        Intent silentIntent = new Intent(context, SmartAutoReceiver.class);
-        silentIntent.putExtra("to_silent", true);
-        silentIntent.putExtra("event_start", eventStart);
-        PendingIntent silentPendingIntent = PendingIntent.getBroadcast(
-                context, silentRequestCode, silentIntent, 
-                PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
-        if (silentPendingIntent != null) {
-            alarmManager.cancel(silentPendingIntent);
-            silentPendingIntent.cancel();
-            Log.d(TAG, "Cancelled silent mode alarm for event at: " + new Date(eventStart));
+        // Cancel all possible alarm types
+        String[] types = {"ACTIVATE_SILENT", "PRIMARY_REVERT", "BACKUP_REVERT_1", 
+                         "BACKUP_REVERT_2", "BACKUP_REVERT_3", "FINAL_CLEANUP"};
+        
+        for (String type : types) {
+            Intent intent = new Intent(context, SmartAutoReceiver.class);
+            String action = "com.example.sssshhift.SMART_AUTO_" + type + "_" + eventStart;
+            intent.setAction(action);
+            
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    (int) ((eventStart + type.hashCode()) % Integer.MAX_VALUE),
+                    intent,
+                    PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
+            );
+            
+            if (pendingIntent != null) {
+                alarmManager.cancel(pendingIntent);
+                pendingIntent.cancel();
+                Log.d(TAG, "Cancelled " + type + " alarm for event: " + eventStart);
+            }
         }
-
-        // Cancel revert alarm
-        Intent revertIntent = new Intent(context, SmartAutoReceiver.class);
-        revertIntent.putExtra("to_silent", false);
-        revertIntent.putExtra("event_start", eventStart);
-        PendingIntent revertPendingIntent = PendingIntent.getBroadcast(
-                context, revertRequestCode, revertIntent,
-                PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
-        if (revertPendingIntent != null) {
-            alarmManager.cancel(revertPendingIntent);
-            revertPendingIntent.cancel();
-            Log.d(TAG, "Cancelled revert alarm for event at: " + new Date(eventStart));
-        }
-
-        // Clean up stored preferences
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        prefs.edit()
-            .remove(PREF_PREVIOUS_RINGER_MODE + "_" + eventStart)
-            .apply();
-        Log.d(TAG, "Cleaned up stored preferences for event at: " + new Date(eventStart));
     }
 } 

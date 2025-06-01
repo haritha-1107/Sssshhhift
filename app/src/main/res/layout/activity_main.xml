@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_primary"
+    android:background="@color/primary"
     tools:context=".MainActivity">
 
     <!-- Main Content Area -->
@@ -14,52 +14,49 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- App Bar with Elevation and Shadow -->
+        <!-- Toolbar -->
         <com.google.android.material.appbar.AppBarLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:elevation="8dp"
-            app:elevation="8dp">
+            android:background="@color/primary">
 
             <com.google.android.material.appbar.MaterialToolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:background="@drawable/toolbar_gradient"
-                app:title="@string/app_name"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                app:title="My Profiles"
                 app:titleTextColor="@color/white"
-                app:layout_scrollFlags="scroll|enterAlways" />
+                app:subtitle="Manage your automated profiles"
+                app:subtitleTextColor="@color/white_80"
+                app:menu="@menu/main_menu"/>
 
         </com.google.android.material.appbar.AppBarLayout>
 
-        <!-- Fragment Container with Smooth Transitions -->
+        <!-- Fragment Container -->
         <FrameLayout
             android:id="@+id/fragment_container"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:background="@color/background_primary"
-            android:clipToPadding="false"
-            android:animateLayoutChanges="true" />
+            android:clipToPadding="false"/>
 
-        <!-- Bottom Navigation with Material Design 3 Style -->
+        <!-- Bottom Navigation -->
         <com.google.android.material.bottomnavigation.BottomNavigationView
             android:id="@+id/bottom_navigation"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/bottom_nav_background"
-            android:elevation="16dp"
-            app:elevation="16dp"
+            android:background="@color/background_primary"
             app:menu="@menu/bottom_navigation_menu"
-            app:itemIconTint="@color/bottom_nav_item_color"
-            app:itemTextColor="@color/bottom_nav_item_color"
-            app:itemRippleColor="@color/ripple_color"
-            app:labelVisibilityMode="labeled"
-            app:itemActiveIndicatorStyle="@style/BottomNavActiveIndicator" />
+            app:itemIconTint="@color/primary"
+            app:itemTextColor="@color/primary"
+            app:labelVisibilityMode="labeled"/>
 
     </LinearLayout>
 
-    <!-- Floating Action Button with Modern Design -->
+    <!-- Floating Action Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add_profile"
         android:layout_width="wrap_content"
@@ -69,33 +66,7 @@
         android:layout_marginBottom="96dp"
         android:src="@drawable/ic_add_profile"
         android:contentDescription="@string/add_profile"
-        app:backgroundTint="@color/fab_background"
-        app:tint="@color/white"
-        app:elevation="12dp"
-        app:hoveredFocusedTranslationZ="16dp"
-        app:pressedTranslationZ="16dp"
-        app:rippleColor="@color/fab_ripple"
-        app:shapeAppearanceOverlay="@style/FabShapeAppearance"
-        app:layout_behavior="com.google.android.material.behavior.HideBottomViewOnScrollBehavior" />
-
-    <!-- Optional: Loading Overlay -->
-    <FrameLayout
-        android:id="@+id/loading_overlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/overlay_background"
-        android:visibility="gone"
-        android:clickable="true"
-        android:focusable="true">
-
-        <com.google.android.material.progressindicator.CircularProgressIndicator
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:indeterminate="true"
-            app:indicatorColor="@color/primary_color"
-            app:trackColor="@color/track_color" />
-
-    </FrameLayout>
+        app:backgroundTint="@color/primary"
+        app:tint="@color/white"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

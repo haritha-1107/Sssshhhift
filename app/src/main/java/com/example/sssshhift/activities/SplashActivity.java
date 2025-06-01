@@ -138,23 +138,23 @@ public class SplashActivity extends AppCompatActivity {
 
     private void animateLogo() {
         if (logo != null) {
-            // Logo entrance animation
+            // Initial phone entrance animation
             AnimatorSet logoAnimSet = new AnimatorSet();
 
             ObjectAnimator scaleX = ObjectAnimator.ofFloat(logo, "scaleX", 0f, 1.1f, 1f);
             ObjectAnimator scaleY = ObjectAnimator.ofFloat(logo, "scaleY", 0f, 1.1f, 1f);
             ObjectAnimator alpha = ObjectAnimator.ofFloat(logo, "alpha", 0f, 1f);
-            ObjectAnimator rotation = ObjectAnimator.ofFloat(logo, "rotation", -90f, 0f);
+            ObjectAnimator rotation = ObjectAnimator.ofFloat(logo, "rotation", -30f, 0f);
 
             logoAnimSet.playTogether(scaleX, scaleY, alpha, rotation);
             logoAnimSet.setDuration(700);
             logoAnimSet.setInterpolator(new OvershootInterpolator(1.1f));
 
-            // Ring animation
+            // Start vibration animation after entrance
             logoAnimSet.addListener(new AnimatorListenerAdapter() {
                 @Override
                 public void onAnimationEnd(Animator animation) {
-                    animateLogoRing();
+                    startVibratingAnimation();
                 }
             });
 
@@ -162,17 +162,53 @@ public class SplashActivity extends AppCompatActivity {
         }
     }
 
-    private void animateLogoRing() {
+    private void startVibratingAnimation() {
+        if (logo != null) {
+            // Create vibration animation
+            AnimatorSet vibrateSet = new AnimatorSet();
+
+            // Horizontal vibration
+            ObjectAnimator translateX = ObjectAnimator.ofFloat(logo, "translationX",
+                    0f, -3f, 3f, -3f, 3f, -2f, 2f, -1f, 1f, 0f);
+            translateX.setDuration(500);
+            translateX.setRepeatCount(ObjectAnimator.INFINITE);
+            translateX.setRepeatMode(ObjectAnimator.RESTART);
+
+            // Subtle rotation
+            ObjectAnimator rotate = ObjectAnimator.ofFloat(logo, "rotation",
+                    0f, -2f, 2f, -2f, 2f, -1f, 1f, 0f);
+            rotate.setDuration(500);
+            rotate.setRepeatCount(ObjectAnimator.INFINITE);
+            rotate.setRepeatMode(ObjectAnimator.RESTART);
+
+            vibrateSet.playTogether(translateX, rotate);
+            vibrateSet.start();
+
+            // Animate the ring effect
+            animateVibratingRing();
+        }
+    }
+
+    private void animateVibratingRing() {
         if (logoRing != null) {
+            // Create expanding ring animation
             AnimatorSet ringAnimSet = new AnimatorSet();
 
-            ObjectAnimator alpha = ObjectAnimator.ofFloat(logoRing, "alpha", 0f, 0.6f, 0f);
-            ObjectAnimator scaleX = ObjectAnimator.ofFloat(logoRing, "scaleX", 1f, 1.2f);
-            ObjectAnimator scaleY = ObjectAnimator.ofFloat(logoRing, "scaleY", 1f, 1.2f);
+            ObjectAnimator alpha = ObjectAnimator.ofFloat(logoRing, "alpha", 0f, 0.3f, 0f);
+            alpha.setRepeatCount(ObjectAnimator.INFINITE);
+            alpha.setDuration(1000);
+
+            ObjectAnimator scaleX = ObjectAnimator.ofFloat(logoRing, "scaleX", 0.8f, 1.2f);
+            scaleX.setRepeatCount(ObjectAnimator.INFINITE);
+            scaleX.setDuration(1000);
+
+            ObjectAnimator scaleY = ObjectAnimator.ofFloat(logoRing, "scaleY", 0.8f, 1.2f);
+            scaleY.setRepeatCount(ObjectAnimator.INFINITE);
+            scaleY.setDuration(1000);
 
             ringAnimSet.playTogether(alpha, scaleX, scaleY);
-            ringAnimSet.setDuration(800);
             ringAnimSet.setInterpolator(new DecelerateInterpolator());
+            
             ringAnimSet.start();
         }
     }

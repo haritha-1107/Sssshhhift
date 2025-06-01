@@ -39,7 +39,7 @@
             android:layout_height="120dp"
             android:src="@drawable/ic_empty_state"
             android:contentDescription="Empty State"
-            app:tint="@color/primary_color" />
+            app:tint="@color/primary" />
 
         <TextView
             android:id="@+id/empty_state_text"
@@ -52,7 +52,7 @@
             android:paddingTop="16dp" />
     </LinearLayout>
 
-    <!-- Floating Action Button (optional) -->
+    <!-- Floating Action Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add_profile"
         android:layout_width="wrap_content"

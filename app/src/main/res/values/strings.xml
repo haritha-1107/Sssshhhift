@@ -73,4 +73,13 @@
     <string name="select_location">Select Location</string>
     <string name="current_location">Current Location</string>
     <string name="search_location">Search location</string>
+
+    <!-- Usage Insights -->
+    <string name="usage_insights">Usage Insights</string>
+    <string name="total_silent_time">Total Silent Time</string>
+    <string name="most_used_mode">Most Used Mode</string>
+    <string name="peak_hour">Peak Activity Hour</string>
+    <string name="recent_activity">Recent Activity</string>
+    <string name="used_x_times">Used %d times</string>
+    <string name="x_activations">%d activations</string>
 </resources>

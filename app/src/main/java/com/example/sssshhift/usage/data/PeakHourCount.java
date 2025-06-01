@@ -1,14 +1,17 @@
 package com.example.sssshhift.usage.data;
 
+import androidx.room.ColumnInfo;
+
 public class PeakHourCount {
-    private String hour;
+    @ColumnInfo(name = "hour")
+    private int hour;
+
+    @ColumnInfo(name = "count")
     private int count;
 
-    public PeakHourCount(String hour, int count) {
-        this.hour = hour;
-        this.count = count;
-    }
+    public int getHour() { return hour; }
+    public void setHour(int hour) { this.hour = hour; }
 
-    public String getHour() { return hour; }
     public int getCount() { return count; }
+    public void setCount(int count) { this.count = count; }
 } 

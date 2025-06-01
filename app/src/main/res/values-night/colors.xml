@@ -20,9 +20,17 @@
     <color name="on_secondary">#164E63</color>         <!-- Dark text on light secondary -->
     <color name="on_background">#F1F5F9</color>        <!-- Light text on dark background -->
     <color name="on_surface">#E2E8F0</color>           <!-- Light text on dark surface -->
-    <color name="text_primary">#F8FAFC</color>         <!-- Primary light text -->
-    <color name="text_secondary">#CBD5E1</color>       <!-- Secondary light text -->
+    <color name="text_primary">#F1F5F9</color>         <!-- Bright white for primary text -->
+    <color name="text_secondary">#CBD5E1</color>       <!-- Light gray for secondary text -->
+    <color name="text_tertiary">#94A3B8</color>        <!-- Medium gray for tertiary text -->
     <color name="text_disabled">#64748B</color>        <!-- Disabled text -->
+
+    <!-- Card Colors -->
+    <color name="card_background">#1E293B</color>      <!-- Dark card background -->
+    <color name="card_border">#334155</color>          <!-- Slightly lighter border -->
+    <color name="background_color">#0F172A</color>     <!-- Main background -->
+    <color name="accent">#818CF8</color>               <!-- Light indigo accent -->
+    <color name="stroke_color">#334155</color>         <!-- Card stroke color -->
 
     <!-- FAB Colors -->
     <color name="fab_background">#818CF8</color>       <!-- Light indigo for visibility -->
@@ -36,6 +44,12 @@
     <!-- Utility Colors -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
+    <color name="white_80">#CCF1F5F9</color>
+    <color name="white_60">#99F1F5F9</color>
+    <color name="white_40">#66F1F5F9</color>
+    <color name="black_80">#CC0F172A</color>
+    <color name="black_60">#990F172A</color>
+    <color name="black_40">#660F172A</color>
     <color name="overlay_background">#80000000</color> <!-- Semi-transparent black -->
     <color name="ripple_light">#1A818CF8</color>       <!-- Light ripple effect -->
 
@@ -48,20 +62,17 @@
     <!-- Navigation Colors -->
     <color name="nav_background">#1E293B</color>       <!-- Dark navigation background -->
     <color name="nav_selected">#818CF8</color>         <!-- Selected nav item -->
-    <color name="nav_unselected">#94A3B8</color>
-
-    <color name="primary_dark">#1976D2</color>
-    <color name="accent_color">#FF5722</color>
+    <color name="nav_unselected">#94A3B8</color>       <!-- Unselected nav item -->
 
     <!-- Status colors -->
-    <color name="status_connected">#4CAF50</color>
-    <color name="status_disconnected">#F44336</color>
-    <color name="status_connecting">#FF9800</color>
+    <color name="status_connected">#34D399</color>     <!-- Light green for connected -->
+    <color name="status_disconnected">#F87171</color>  <!-- Light red for disconnected -->
+    <color name="status_connecting">#FCD34D</color>    <!-- Light amber for connecting -->
 
-    <!-- Card colors -->
-    <color name="card_background">#FFFFFF</color>
-    <color name="card_border">#E0E0E0</color>
-    <color name="background_color">#F5F5F5</color>
-    <color name="accent">#FF4081</color>
-    <!-- Unselected nav item -->
+    <!-- Profile Colors -->
+    <color name="profile_text_primary">#F1F5F9</color>
+    <color name="profile_text_secondary">#CBD5E1</color>
+    <color name="profile_description">#94A3B8</color>
+    <color name="profile_card_background">#1E293B</color>
+    <color name="profile_item_background">#0F172A</color>
 </resources>

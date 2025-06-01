@@ -46,33 +46,33 @@ public class SmartAutoWorker extends Worker {
         Context context = getApplicationContext();
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
 
-        // Check if feature is enabled
-        boolean isEnabled = prefs.getBoolean("auto_mode_enabled", false);
-        Log.d(TAG, "Smart Auto Mode enabled: " + isEnabled);
-        
-        if (!isEnabled) {
-            Log.d(TAG, "Smart Auto Mode is disabled, skipping calendar check");
-            return Result.success();
-        }
-
-        // Check calendar permission
-        boolean hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR)
-                == PackageManager.PERMISSION_GRANTED;
-        Log.d(TAG, "Calendar permission granted: " + hasPermission);
-        if (!hasPermission) {
-            Log.e(TAG, "Calendar permission not granted, cannot proceed");
-            return Result.failure();
-        }
-
-        // Check DND permission
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && 
-            (notificationManager == null || !notificationManager.isNotificationPolicyAccessGranted())) {
-            Log.e(TAG, "DND permission not granted");
-            return Result.failure();
-        }
-
         try {
+            // Check if feature is enabled
+            boolean isEnabled = prefs.getBoolean("auto_mode_enabled", false);
+            Log.d(TAG, "Smart Auto Mode enabled: " + isEnabled);
+            
+            if (!isEnabled) {
+                Log.d(TAG, "Smart Auto Mode is disabled, skipping calendar check");
+                return Result.success();
+            }
+
+            // Check calendar permission
+            boolean hasPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR)
+                    == PackageManager.PERMISSION_GRANTED;
+            Log.d(TAG, "Calendar permission granted: " + hasPermission);
+            if (!hasPermission) {
+                Log.e(TAG, "Calendar permission not granted, scheduling retry");
+                return Result.retry();
+            }
+
+            // Check DND permission
+            NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && 
+                (notificationManager == null || !notificationManager.isNotificationPolicyAccessGranted())) {
+                Log.e(TAG, "DND permission not granted, scheduling retry");
+                return Result.retry();
+            }
+
             // Get current settings
             Set<String> keywords = prefs.getStringSet("auto_mode_keywords", new HashSet<>());
             int preEventOffset = prefs.getInt("auto_mode_pre_event_offset", 5);
@@ -95,8 +95,17 @@ public class SmartAutoWorker extends Worker {
             scheduleNextCheck(context);
             
             return Result.success();
+        } catch (SecurityException e) {
+            Log.e(TAG, "Security exception in calendar worker: " + e.getMessage(), e);
+            return Result.retry();
         } catch (Exception e) {
             Log.e(TAG, "Error in calendar worker: " + e.getMessage(), e);
+            // Only retry if it's not a fatal error
+            if (e instanceof IllegalArgumentException || 
+                e instanceof NullPointerException || 
+                e instanceof IllegalStateException) {
+                return Result.failure();
+            }
             return Result.retry();
         }
     }

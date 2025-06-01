@@ -47,7 +47,7 @@
             android:layout_height="wrap_content"
             android:text="Trigger info"
             android:textAppearance="?attr/textAppearanceBody2"
-            android:textColor="@color/text_secondary"
+            android:textColor="@color/secondary_text"
             android:layout_marginBottom="4dp" />
 
         <!-- Ringer mode -->
@@ -57,7 +57,7 @@
             android:layout_height="wrap_content"
             android:text="Ringer Mode"
             android:textAppearance="?attr/textAppearanceBody2"
-            android:textColor="@color/text_secondary"
+            android:textColor="@color/secondary_text"
             android:layout_marginBottom="4dp" />
 
         <!-- Created at -->
@@ -67,7 +67,7 @@
             android:layout_height="wrap_content"
             android:text="Created: Apr 20, 2025"
             android:textAppearance="?attr/textAppearanceCaption"
-            android:textColor="@color/text_secondary"
+            android:textColor="@color/secondary_text"
             android:layout_marginBottom="8dp" />
 
         <!-- Action chips -->

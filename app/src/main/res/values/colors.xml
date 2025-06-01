@@ -1,50 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <!-- Primary App Colors -->
-    <color name="primary_color">#2196F3</color>
-    <color name="primary_dark">#1976D2</color>
-    <color name="accent_color">#FF9800</color>
+    <!-- Primary App Colors - Periwinkle Theme -->
+    <color name="primary_color">#9F86C0</color>
+    <color name="primary_dark">#8871A6</color>
+    <color name="accent_color">#B6A2D3</color>
 
     <!-- Add theme-compatible primary/secondary colors -->
-    <color name="primary">#2196F3</color>
-    <color name="primary_variant">#1976D2</color>
+    <color name="primary">#9F86C0</color>
+    <color name="primary_variant">#8871A6</color>
+    <color name="primary_light">#BBA5D9</color>
     <color name="on_primary">#FFFFFF</color>
 
-    <color name="secondary">#FF9800</color>
-    <color name="secondary_variant">#F57C00</color>
-    <color name="on_secondary">#000000</color>
+    <color name="secondary">#B6A2D3</color>
+    <color name="secondary_variant">#A894C7</color>
+    <color name="on_secondary">#FFFFFF</color>
 
     <!-- Background and surface -->
-    <color name="background_primary">#FFFFFF</color>
-    <color name="on_background">#212121</color>
-    <color name="surface">#F5F5F5</color>
-    <color name="on_surface">#212121</color>
+    <color name="background_primary">#FAF8FC</color>
+    <color name="background_light">#F5F3F9</color>
+    <color name="on_background">#2A2433</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="on_surface">#2A2433</color>
 
     <!-- Text Colors for White Background -->
-    <color name="primary_text">#212121</color>
-    <color name="secondary_text">#757575</color>
-    <color name="tertiary_text">#BDBDBD</color>
-    <color name="text_primary">#212121</color>
-    <color name="text_secondary">#757575</color>
-    <color name="text_disabled">#BDBDBD</color>
+    <color name="primary_text">#2A2433</color>
+    <color name="secondary_text">#453D52</color>
+    <color name="tertiary_text">#605671</color>
+    <color name="text_primary">#2A2433</color>
+    <color name="text_secondary">#453D52</color>
+    <color name="text_disabled">#605671</color>
 
     <!-- Status Colors -->
-    <color name="error_red">#F44336</color>
-    <color name="success_green">#4CAF50</color>
-    <color name="warning_orange">#FF9800</color>
+    <color name="error_red">#D6736C</color>
+    <color name="success_green">#7BA686</color>
+    <color name="warning_orange">#E6A67C</color>
 
     <!-- Theme-compliant status -->
-    <color name="error">#F44336</color>
-    <color name="success">#4CAF50</color>
-    <color name="warning">#FF9800</color>
-    <color name="info">#03A9F4</color> <!-- Optional info color for consistency -->
+    <color name="error">#D6736C</color>
+    <color name="success">#7BA686</color>
+    <color name="warning">#E6A67C</color>
+    <color name="info">#8FACC2</color>
 
     <!-- Background Colors -->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
-    <color name="light_gray">#F5F5F5</color>
-    <color name="medium_gray">#E0E0E0</color>
+    <color name="light_gray">#F5F3F9</color>
+    <color name="medium_gray">#E8E6EC</color>
 
     <!-- Transparency Variants -->
     <color name="white_80">#CCFFFFFF</color>
@@ -55,7 +56,7 @@
     <color name="black_40">#66000000</color>
 
     <!-- Ripple & overlay -->
-    <color name="ripple_light">#1A000000</color>
+    <color name="ripple_light">#1A9F86C0</color>
     <color name="overlay_background">#80000000</color>
 
     <!-- Theme Specific -->
@@ -64,24 +65,32 @@
     <color name="splash_secondary_text">@color/secondary_text</color>
 
     <!-- Status colors -->
-    <color name="status_connected">#4CAF50</color>
-    <color name="status_disconnected">#F44336</color>
-    <color name="status_connecting">#FF9800</color>
+    <color name="status_connected">#7BA686</color>
+    <color name="status_disconnected">#D6736C</color>
+    <color name="status_connecting">#E6A67C</color>
 
     <!-- Card colors -->
     <color name="card_background">#FFFFFF</color>
-    <color name="card_border">#E0E0E0</color>
-    <color name="background_color">#F5F5F5</color>
-    <color name="accent">#FF4081</color>
+    <color name="card_border">#E8E6EC</color>
+    <color name="background_color">#FAF8FC</color>
+    <color name="accent">#B6A2D3</color>
 
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_200_transparent">#80BB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="circle_fill">#220000FF</color>
+    <!-- Navigation Colors -->
+    <color name="nav_background">#FFFFFF</color>
+    <color name="nav_selected">@color/primary</color>
+    <color name="nav_unselected">#605671</color>
 
+    <!-- FAB Colors -->
+    <color name="fab_background">@color/primary</color>
+    <color name="fab_ripple">#1A9F86C0</color>
+
+    <!-- Component Colors -->
+    <color name="track_color">#E8E6EC</color>
+    <color name="chip_background_inactive">#F5F3F9</color>
+    <color name="chip_background_active">@color/primary</color>
+
+    <!-- New colors from the code block -->
+    <color name="stroke_color">#1F000000</color>
 </resources>
 
 

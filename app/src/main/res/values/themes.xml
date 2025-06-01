@@ -2,7 +2,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Base light theme -->
-    <style name="Theme.Sssshhhift" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.Sssshhhift" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryVariant">@color/primary_variant</item>
@@ -27,7 +27,7 @@
         <!-- System UI colors -->
         <item name="android:navigationBarColor">@color/background_primary</item>
         <item name="android:windowBackground">@color/background_primary</item>
-        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="o">true</item>
         <item name="android:windowIsTranslucent">false</item>
 
@@ -40,7 +40,7 @@
 
         <!-- Error colors -->
         <item name="colorError">@color/error</item>
-        <item name="colorOnError">@color/white</item>
+        <item name="colorOnError">@color/black</item>
 
     </style>
 

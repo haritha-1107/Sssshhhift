@@ -1,27 +1,31 @@
 package com.example.sssshhift.usage.data;
 
 import androidx.lifecycle.LiveData;
-import androidx.room.Dao;
-import androidx.room.Insert;
-import androidx.room.Query;
+import androidx.room.*;
 import java.util.List;
-import java.util.Date;
 
 @Dao
 public interface UsageLogDao {
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(UsageLog log);
 
-    @Query("SELECT * FROM usage_logs ORDER BY startTime DESC")
-    LiveData<List<UsageLog>> getAllLogs();
+    @Query("SELECT * FROM usage_logs WHERE startTime >= :timestamp ORDER BY startTime DESC")
+    LiveData<List<UsageLog>> getLogsAfter(long timestamp);
 
-    @Query("SELECT mode, COUNT(*) as count FROM usage_logs GROUP BY mode ORDER BY count DESC LIMIT 1")
-    LiveData<UsageModeCount> getMostUsedMode();
+    @Query("SELECT mode as mode, COUNT(*) as count, SUM(durationMinutes) as totalDuration " +
+           "FROM usage_logs " +
+           "WHERE startTime >= :timestamp " +
+           "GROUP BY mode ORDER BY count DESC LIMIT 1")
+    LiveData<UsageModeCount> getMostUsedMode(long timestamp);
 
-    @Query("SELECT strftime('%H', startTime / 1000, 'unixepoch', 'localtime') as hour, " +
-           "COUNT(*) as count FROM usage_logs GROUP BY hour ORDER BY count DESC LIMIT 1")
-    LiveData<PeakHourCount> getPeakHour();
+    @Query("SELECT strftime('%H', datetime(startTime/1000, 'unixepoch', 'localtime')) as hour, " +
+           "COUNT(*) as count " +
+           "FROM usage_logs " +
+           "WHERE startTime >= :timestamp " +
+           "GROUP BY hour ORDER BY count DESC LIMIT 1")
+    LiveData<PeakHourCount> getPeakHour(long timestamp);
 
-    @Query("SELECT SUM(durationMinutes) FROM usage_logs WHERE mode = 'SILENT'")
-    LiveData<Long> getTotalSilentDuration();
+    @Query("SELECT SUM(durationMinutes) FROM usage_logs " +
+           "WHERE mode = :mode AND startTime >= :timestamp")
+    LiveData<Long> getTotalDurationForMode(String mode, long timestamp);
 } 

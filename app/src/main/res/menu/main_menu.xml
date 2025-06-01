@@ -6,18 +6,28 @@
         android:id="@+id/action_add_profile"
         android:icon="@drawable/ic_add"
         android:title="@string/add_profile"
-        app:showAsAction="ifRoom" />
+        android:orderInCategory="1"
+        app:showAsAction="always" />
 
     <item
         android:id="@+id/smartAutoSettingsFragment"
         android:icon="@drawable/ic_calendar_auto"
         android:title="@string/smart_auto_mode_title"
+        android:orderInCategory="2"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_usage_insights"
+        android:icon="@drawable/ic_insights"
+        android:title="Usage Insights"
+        android:orderInCategory="3"
         app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/action_settings"
         android:icon="@drawable/ic_settings"
         android:title="@string/settings_title"
+        android:orderInCategory="100"
         app:showAsAction="never" />
 
     <!-- ... existing menu items ... -->

@@ -15,6 +15,20 @@
         <item name="itemRippleColor">@color/ripple_light</item>
     </style>
 
+    <!-- App Bar Style -->
+    <style name="AppBarStyle" parent="ThemeOverlay.Material3.ActionBar">
+        <item name="android:background">@color/background_primary</item>
+        <item name="elevation">8dp</item>
+    </style>
+
+    <!-- Toolbar Title Style -->
+    <style name="ToolbarTitleStyle" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">@color/on_primary</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="fontFamily">sans-serif-medium</item>
+    </style>
+
     <!-- Splash Theme -->
     <style name="SplashTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowBackground">@color/background_primary</item>
@@ -30,10 +44,11 @@
     <!-- Custom FAB Style -->
     <style name="CustomFabStyle" parent="Widget.Material3.FloatingActionButton.Primary">
         <item name="backgroundTint">@color/fab_background</item>
-        <item name="tint">@color/on_primary</item>
+        <item name="tint">@color/white</item>
         <item name="rippleColor">@color/fab_ripple</item>
         <item name="elevation">6dp</item>
         <item name="pressedTranslationZ">12dp</item>
+        <item name="android:theme">@style/Theme.Material3.DayNight</item>
     </style>
 
     <!-- Toolbar Popup Menu Styling -->
@@ -93,6 +108,14 @@
         <item name="android:textColor">@color/primary</item>
         <item name="rippleColor">@color/ripple_light</item>
         <item name="cornerRadius">8dp</item>
+    </style>
+
+    <!-- Progress Indicator Style -->
+    <style name="CustomProgressIndicator" parent="Widget.Material3.CircularProgressIndicator">
+        <item name="indicatorColor">@color/primary</item>
+        <item name="trackColor">@color/track_color</item>
+        <item name="trackThickness">4dp</item>
+        <item name="trackCornerRadius">3dp</item>
     </style>
 
 </resources>

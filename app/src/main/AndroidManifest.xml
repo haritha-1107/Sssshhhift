@@ -78,7 +78,7 @@
         <activity
             android:name=".activities.OnboardingActivity"
             android:exported="false"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:theme="@style/Theme.Sssshhhift"
             android:screenOrientation="portrait" />
 
         <activity
@@ -103,7 +103,7 @@
             android:name=".activities.UsageInsightsActivity"
             android:label="Usage Insights"
             android:parentActivityName=".activities.MainActivity"
-            android:theme="@style/Theme.MaterialComponents.Light.DarkActionBar">
+            android:theme="@style/Theme.MaterialComponents.Light.NoActionBar">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".activities.MainActivity" />
@@ -179,6 +179,11 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <service
+            android:name=".services.ModeTrackingService"
+            android:enabled="true"
+            android:exported="false" />
 
         <!-- Smart Auto Mode components -->
         <receiver

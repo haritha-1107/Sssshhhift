@@ -17,10 +17,17 @@ import android.provider.Settings;
 import android.app.Service;
 import android.content.ComponentName;
 import android.media.AudioAttributes;
+import android.app.Notification;
+import android.app.PendingIntent;
+import android.graphics.Color;
+
+import com.example.sssshhift.MainActivity;
+import com.example.sssshhift.R;
 
 public class TimerAlarmReceiver extends BroadcastReceiver {
     private static final String TAG = "TimerAlarmReceiver";
     private static final String CHANNEL_ID = "timer_notification_channel";
+    private static final String CHANNEL_NAME = "Timer Notifications";
     private static final int NOTIFICATION_ID = 1001;
     private static final int MAX_RETRIES = 15; // Increased retries
     private static final long RETRY_DELAY = 1000; // 1 second
@@ -112,11 +119,20 @@ public class TimerAlarmReceiver extends BroadcastReceiver {
 
     private boolean changeRingerMode(Context context, int targetMode, boolean isStart, String profileName) {
         try {
+            // Get system services
+            AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+            if (audioManager == null) {
+                Log.e(TAG, "AudioManager is null");
+                return false;
+            }
+
             // Method 1: Direct audio manager
             audioManager.setRingerMode(targetMode);
-            Thread.sleep(100);
+            Thread.sleep(100); // Small delay to let the change take effect
 
-            // Method 2: Interruption filter
+            // Method 2: Interruption filter (for Android M and above)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && notificationManager != null) {
                 try {
                     int filter = NotificationManager.INTERRUPTION_FILTER_ALL;
@@ -135,36 +151,47 @@ public class TimerAlarmReceiver extends BroadcastReceiver {
                 }
             }
 
-            // Method 3: Audio attributes
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Method 3: Audio attributes (for Android P and above)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 try {
-                    AudioAttributes attributes = new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build();
+                    AudioAttributes.Builder builder = new AudioAttributes.Builder();
+                    builder.setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE);
+                    builder.setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION);
                     audioManager.setStreamVolume(AudioManager.STREAM_RING, 
-                        targetMode == AudioManager.RINGER_MODE_NORMAL ? audioManager.getStreamMaxVolume(AudioManager.STREAM_RING) : 0,
+                        targetMode == AudioManager.RINGER_MODE_SILENT ? 0 : audioManager.getStreamMaxVolume(AudioManager.STREAM_RING),
                         0);
+                    Thread.sleep(100);
                 } catch (Exception e) {
-                    Log.e(TAG, "Error setting stream volume: " + e.getMessage());
+                    Log.e(TAG, "Error setting audio attributes: " + e.getMessage());
                 }
             }
 
             // Verify the change
             int currentMode = audioManager.getRingerMode();
-            boolean success = currentMode == targetMode;
-
-            if (success) {
-                showSuccessNotification(context, targetMode, isStart, profileName);
-                // Save the successful state
-                SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-                prefs.edit()
-                    .putInt("last_successful_mode", targetMode)
-                    .putLong("last_success_time", System.currentTimeMillis())
-                    .apply();
+            if (currentMode != targetMode) {
+                Log.w(TAG, "Ringer mode verification failed. Expected: " + getRingerModeName(targetMode) + 
+                          ", Current: " + getRingerModeName(currentMode));
+                
+                // Try one more time with a longer delay
+                audioManager.setRingerMode(targetMode);
+                Thread.sleep(500);
+                
+                currentMode = audioManager.getRingerMode();
+                if (currentMode != targetMode) {
+                    Log.e(TAG, "Failed to change ringer mode after retry");
+                    return false;
+                }
             }
 
-            return success;
+            // Show notification
+            String action = isStart ? "activated" : "deactivated";
+            String message = String.format("%s profile %s - %s mode", 
+                profileName, action, getRingerModeName(targetMode));
+            showNotification(context, message);
+
+            Log.d(TAG, "Successfully changed ringer mode to " + getRingerModeName(targetMode));
+            return true;
+
         } catch (Exception e) {
             Log.e(TAG, "Error changing ringer mode: " + e.getMessage());
             return false;
@@ -261,13 +288,13 @@ public class TimerAlarmReceiver extends BroadcastReceiver {
             try {
                 NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
-                    "Timer Profile Notifications",
+                    CHANNEL_NAME,
                     NotificationManager.IMPORTANCE_HIGH
                 );
-                channel.setDescription("Notifications for timer-based profile changes");
-                channel.setBypassDnd(true);
+                channel.setDescription("Notifications for timer events");
                 channel.enableVibration(true);
-                channel.setShowBadge(true);
+                channel.setVibrationPattern(new long[]{0, 500, 200, 500});
+                channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
 
                 NotificationManager notificationManager = 
                     (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -277,6 +304,42 @@ public class TimerAlarmReceiver extends BroadcastReceiver {
             } catch (Exception e) {
                 Log.e(TAG, "Error creating notification channel: " + e.getMessage());
             }
+        }
+    }
+
+    private void showNotification(Context context, String message) {
+        try {
+            createNotificationChannel(context);
+
+            // Create an intent that opens the app when notification is tapped
+            Intent intent = new Intent(context, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            PendingIntent pendingIntent = PendingIntent.getActivity(
+                context, 
+                0, 
+                intent, 
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            // Build the notification
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_lock_silent_mode)
+                .setContentTitle("Timer Profile Update")
+                .setContentText(message)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .setVibrate(new long[]{0, 500, 200, 500});
+
+            // Show the notification
+            if (notificationManager != null) {
+                notificationManager.notify(NOTIFICATION_ID, builder.build());
+                Log.d(TAG, "Notification shown: " + message);
+            } else {
+                Log.e(TAG, "NotificationManager is null");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error showing notification: " + e.getMessage());
         }
     }
 } 

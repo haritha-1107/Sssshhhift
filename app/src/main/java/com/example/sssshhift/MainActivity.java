@@ -4,6 +4,9 @@ import static android.content.ContentValues.TAG;
 
 import android.Manifest;
 import android.app.NotificationManager;
+
+import com.example.sssshhift.activities.AddProfileActivity;
+import com.example.sssshhift.activities.UsageInsightsActivity;
 import com.example.sssshhift.fragments.ProfilesFragment;
 import android.content.Context;
 import android.content.Intent;
@@ -38,6 +41,7 @@ import com.example.sssshhift.location.LocationUtils;
 import com.example.sssshhift.features.smartauto.SmartAutoSettingsFragment;
 import com.example.sssshhift.features.smartauto.SmartAutoWorker;
 import androidx.preference.PreferenceManager;
+import com.google.android.material.appbar.MaterialToolbar;
 
 public class MainActivity extends AppCompatActivity implements BottomNavigationView.OnNavigationItemSelectedListener {
 
@@ -74,7 +78,13 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
         initViews();
         setupFragments();
         setupFab();
-        setSupportActionBar(findViewById(R.id.toolbar));
+        
+        // Setup toolbar properly
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(true);
+        }
 
         // Set default fragment
         if (savedInstanceState == null) {
@@ -103,12 +113,30 @@ public class MainActivity extends AppCompatActivity implements BottomNavigationV
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.smartAutoSettingsFragment) {
+        int itemId = item.getItemId();
+        if (itemId == R.id.smartAutoSettingsFragment) {
             // Navigate to SmartAutoSettingsFragment
             getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container, new SmartAutoSettingsFragment())
                 .addToBackStack(null)
                 .commit();
+            return true;
+        } else if (itemId == R.id.action_settings) {
+            // Navigate to settings
+            getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, new SettingsFragment())
+                .addToBackStack(null)
+                .commit();
+            return true;
+        } else if (itemId == R.id.action_add_profile) {
+            // Start AddProfileActivity
+            Intent intent = new Intent(this, AddProfileActivity.class);
+            startActivity(intent);
+            return true;
+        } else if (itemId == R.id.action_usage_insights) {
+            // Start UsageInsightsActivity
+            Intent intent = new Intent(this, UsageInsightsActivity.class);
+            startActivity(intent);
             return true;
         }
         return super.onOptionsItemSelected(item);
